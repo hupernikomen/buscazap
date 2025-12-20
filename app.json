@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "gcomercial",
+    "slug": "gcomercial",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.hupernikomen.gcomercial"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-9531253714806304~2525089890",
+          "iosAppId": "ca-app-pub-xxxxxxxxxxxxxxxx~xxxxxxxxxx"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "95576513-f951-41dd-abe4-408fd0cb2971"
+      }
+    }
+  },
+  "react-native-google-mobile-ads": {
+    "androidAppId": "ca-app-pub-9531253714806304~2525089890"
+  }
+}
