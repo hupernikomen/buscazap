@@ -6,7 +6,7 @@ import { getHorarioStatus } from '../utils/horarioUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { incrementClicks } from '../services/firebaseConnection/firestoreService';
 
-export const StoreBottomSheet = ({ item, colors, onClose }) => {
+export const Detalhe = ({ item, colors, onClose }) => {
   const horarioStatus = getHorarioStatus(item.horarios);
 
   const handleWhatsApp = async () => {

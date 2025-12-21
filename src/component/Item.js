@@ -6,7 +6,7 @@ import { getHorarioStatus } from '../utils/horarioUtils';
 
 const NUMERO_ITENS_FIXOS_POR_CLIQUES = 3;
 
-export const StoreItem = ({ item, index, results, onPress, colors }) => {
+export const Item = ({ item, index, results, onPress, colors }) => {
   const isPremium = item.premium === true;
   const premiumBefore = results.slice(0, index).filter(i => i.premium).length;
   const positionAfterPremium = index - premiumBefore;
@@ -28,6 +28,7 @@ export const StoreItem = ({ item, index, results, onPress, colors }) => {
 
         </Text>
 
+
         {/* Descrição */}
         {item.descricao ? (
           <Text style={[styles.descricao, { color: colors.text + 'B3' }]} numberOfLines={2}>
@@ -35,33 +36,17 @@ export const StoreItem = ({ item, index, results, onPress, colors }) => {
           </Text>
         ) : null}
 
-        {/* Rodapé: categoria + status + patrocinado */}
+
         <View style={styles.footer}>
           <View style={styles.left}>
             {item.categoria && (
-              <Text style={[styles.categoria, { color: colors.text + 'CC' }]}>
-                {item.categoria}
+              <Text style={[styles.categoria, { color: colors.text + 'CC',  }]}>
+                {item.categoria} - {item.endereco?.bairro}
               </Text>
             )}
           </View>
 
           <View style={styles.right}>
-            {/* Status com ícone pequeno (Google style) */}
-            {horarioStatus && (
-              <View style={styles.statusRow}>
-                <Ionicons
-                  nome={horarioStatus.isOpen ? "time-outline" : "time-outline"}
-                  size={14}
-                  color={horarioStatus.isOpen ? '#34A853' : colors.text + '99'}
-                />
-                <Text style={[
-                  styles.statusText,
-                  { color: horarioStatus.isOpen ? '#34A853' : colors.text + '99' }
-                ]}>
-                  {horarioStatus.isOpen ? 'Aberto' : 'Fechado'}
-                </Text>
-              </View>
-            )}
 
             {/* Patrocinado (muito discreto) */}
             {isPremium && (
@@ -97,26 +82,25 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 8,
+    alignItems:'center',
+    marginTop: 8
   },
   left: {
     flex: 1,
   },
   categoria: {
     fontSize: 10,
-    letterSpacing: 0.4,
     textTransform: 'uppercase',
+    letterSpacing:.28
   },
   right: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    alignContent: 'center',
+    // gap: 12,
   },
   statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
   },
   statusText: {
     fontSize: 12,
@@ -125,9 +109,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontStyle: 'italic',
   },
-  divider: {
-    height: 1,
-    marginTop: 16,
-    opacity: 0.6,
-  },
+
 });

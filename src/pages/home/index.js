@@ -28,8 +28,8 @@ const AD_UNIT_ID = __DEV__ ? TestIds.BANNER : 'ca-app-pub-9531253714806304/55814
 
 import { subscribeToStores } from '../../services/firebaseConnection/firestoreService';
 import { normalize } from '../../utils/normalize';
-import { StoreItem } from '../../component/StoreItem';
-import { StoreBottomSheet } from '../../component/StoreBottomSheet';
+import { Item } from '../../component/Item';
+import { Detalhe } from '../../component/Detalhe';
 
 const NUMERO_ITENS_FIXOS_POR_CLIQUES = 3;
 
@@ -92,7 +92,10 @@ export default function Home({ navigation }) {
     return unsub;
   }, [searchQuery]);
 
+
+
   useEffect(() => { const unsub = loadData(); return () => unsub(); }, [loadData]);
+
 
   // === DADOS COMPLETOS: logo + busca + itens + anúncios ===
   const fullData = useMemo(() => {
@@ -128,6 +131,8 @@ export default function Home({ navigation }) {
     return [logo, search, ...itemsWithAds];
   }, [results]);
 
+
+  
   const renderItem = ({ item }) => {
     if (item.type === 'logo') {
       return (
@@ -183,7 +188,7 @@ export default function Home({ navigation }) {
     }
 
     return (
-      <StoreItem
+      <Item
         item={item.item}
         index={item.index}
         results={results}
@@ -198,7 +203,7 @@ export default function Home({ navigation }) {
 
   const handleClose = () => {
     setSelectedItem(null);
-    setTimeout(() => textInputRef.current?.focus(), 100);
+    // setTimeout(() => textInputRef.current?.focus(), 100);
   };
 
   useEffect(() => {
@@ -245,7 +250,7 @@ export default function Home({ navigation }) {
           <View {...props} style={[style, { backgroundColor: '#000000', opacity: 0.5 }]} />
         )}
       >
-        {selectedItem && <StoreBottomSheet item={selectedItem} colors={colors} onClose={handleClose} />}
+        {selectedItem && <Detalhe item={selectedItem} colors={colors} onClose={handleClose} />}
       </BottomSheetModal>
     </BottomSheetModalProvider>
   );
