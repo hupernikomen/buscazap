@@ -43,7 +43,7 @@ export default function Home({ navigation }) {
   const { colors } = useTheme();
   const bottomSheetRef = useRef(null);
   const textInputRef = useRef(null);
-  const snapPoints = useMemo(() => ['60%', '85%'], []);
+  const snapPoints = useMemo(() => ['80%'], []);
 
   const applyOrdering = (list) => {
     const premium = list.filter(i => i.premium);
@@ -131,7 +131,7 @@ export default function Home({ navigation }) {
   const renderItem = ({ item }) => {
     if (item.type === 'logo') {
       return (
-        <View style={{ alignItems: 'center', paddingVertical: 20 }}>
+        <View style={{ alignItems: 'center', paddingTop: 20 }}>
           <Image
             source={{ uri: 'https://firebasestorage.googleapis.com/v0/b/appguiacomercial-e6109.appspot.com/o/buscazapthe2.png?alt=media&token=8d55bbb0-be1c-487f-b7f3-c65b1bbdc9aa' }}
             style={{ width: 160, height: 70 }}
@@ -171,6 +171,8 @@ export default function Home({ navigation }) {
         </View>
       );
     }
+
+    
 
     if (item.type === 'ad') {
       return (
@@ -233,7 +235,7 @@ export default function Home({ navigation }) {
 
       <BottomSheetModal
         ref={bottomSheetRef}
-        index={0}
+        index={1}
         snapPoints={snapPoints}
         onCloseEnd={handleClose}
         onDismiss={handleClose}
@@ -263,7 +265,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 14,
+    paddingHorizontal: 22,
   },
   input: {
     flex: 1,
@@ -275,7 +277,7 @@ const styles = StyleSheet.create({
     height: 50,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: -7,
+    marginRight:-16
   },
   adContainer: {
     marginVertical: 16,

@@ -13,7 +13,7 @@ export const StoreItem = ({ item, index, results, onPress, colors }) => {
   const isDestaque = !isPremium && positionAfterPremium < NUMERO_ITENS_FIXOS_POR_CLIQUES;
 
   const horarioStatus = getHorarioStatus(item.horarios);
-  
+
 
   return (
     <TouchableOpacity
@@ -25,7 +25,7 @@ export const StoreItem = ({ item, index, results, onPress, colors }) => {
         {/* Nome da loja */}
         <Text style={[styles.nome, { color: item.premium ? colors.notification : colors.black }]} numberOfLines={2}>
           {item.nome}
-      
+
         </Text>
 
         {/* Descrição */}
@@ -86,9 +86,9 @@ const styles = StyleSheet.create({
   },
 
   nome: {
-fontSize: 18,
-    fontWeight: '800',
-    lineHeight: 32,
+    fontSize: 18,
+    fontWeight: '600',
+    lineHeight: 28,
   },
   descricao: {
     fontSize: 15,

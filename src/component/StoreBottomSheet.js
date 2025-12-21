@@ -20,7 +20,7 @@ export const StoreBottomSheet = ({ item, colors, onClose }) => {
     <BottomSheetView style={styles.container}>
 
       <View style={styles.header}>
-        <Text style={[styles.storeName, { color: colors.text }]}>{item.name}</Text>
+        <Text style={[styles.storenome, { color: colors.text }]}>{item.nome}</Text>
 
         {horarioStatus && (
           <View style={styles.statusBadge}>
@@ -39,25 +39,25 @@ export const StoreBottomSheet = ({ item, colors, onClose }) => {
       </View>
 
       {/* Descrição */}
-      {item.description && (
-        <Text style={[styles.description, { color: colors.text + 'CC' }]}>
-          {item.description}
+      {item.descricao && (
+        <Text style={[styles.descricao, { color: colors.text + 'CC' }]}>
+          {item.descricao}
         </Text>
       )}
 
       {/* ENDEREÇO CLICÁVEL */}
-      {item.address && (
+      {item.endereco?.complemento && (
         <View style={styles.addressContainer}>
-          <Ionicons name="location-outline" size={19} color={colors.primary || '#1A73E8'} />
-          <Text style={[styles.address, { color: colors.text + 'EE' }]}>
-            {item.address}
+          <Ionicons nome="location-outline" size={19} color={colors.primary || '#1A73E8'} />
+          <Text style={[styles.endereco, { color: colors.text + 'EE' }]}>
+            {item.endereco?.complemento}
           </Text>
         </View>
       )}
 
       {/* Botão WhatsApp */}
       <Pressable onPress={handleWhatsApp} style={styles.whatsappButton}>
-        <Ionicons name="logo-whatsapp" size={28} color="#fff" />
+        <Ionicons nome="logo-whatsapp" size={28} color="#fff" />
         <Text style={styles.whatsappText}>WhatsApp</Text>
       </Pressable>
     </BottomSheetView>
@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 18,
   },
-  storeName: {
+  storenome: {
     fontSize: 28,
     fontWeight: '800',
     letterSpacing: -0.6,
@@ -109,9 +109,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.4,
   },
-  description: {
+  descricao: {
     fontSize: 16.8,
-    lineHeight: 26,
     marginBottom: 20,
   },
   addressContainer: {
@@ -124,11 +123,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#00000006',
     marginBottom: 28,
   },
-  address: {
+  endereco: {
     fontSize: 16,
     fontWeight: '500',
     flex: 1,
-    lineHeight: 22,
   },
   whatsappButton: {
     flexDirection: 'row',
