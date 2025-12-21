@@ -23,7 +23,7 @@ export const Item = ({ item, index, results, onPress, colors }) => {
     >
       <View style={styles.content}>
         {/* Nome da loja */}
-        <Text style={[styles.nome, { color: item.premium ? colors.notification : colors.black }]} numberOfLines={2}>
+        <Text style={[styles.nome, { color: item.premium ? colors.notification : colors.black }]} numberOfLines={1}>
           {item.nome}
 
         </Text>
@@ -31,7 +31,7 @@ export const Item = ({ item, index, results, onPress, colors }) => {
 
         {/* Descrição */}
         {item.descricao ? (
-          <Text style={[styles.descricao, { color: colors.text + 'B3' }]} numberOfLines={2}>
+          <Text style={[styles.descricao, { color: colors.text + 'B3' }]} numberOfLines={3}>
             {item.descricao}
           </Text>
         ) : null}
@@ -40,7 +40,7 @@ export const Item = ({ item, index, results, onPress, colors }) => {
         <View style={styles.footer}>
           <View style={styles.left}>
             {item.categoria && (
-              <Text style={[styles.categoria, { color: colors.text + 'CC',  }]}>
+              <Text style={[styles.categoria, { color: colors.suave,  }]}>
                 {item.categoria} - {item.endereco?.bairro}
               </Text>
             )}
@@ -66,7 +66,6 @@ export const Item = ({ item, index, results, onPress, colors }) => {
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 6,
     paddingVertical: 12,
   },
 
@@ -91,7 +90,7 @@ const styles = StyleSheet.create({
   categoria: {
     fontSize: 10,
     textTransform: 'uppercase',
-    letterSpacing:.28
+    letterSpacing:.35,
   },
   right: {
     flexDirection: 'row',

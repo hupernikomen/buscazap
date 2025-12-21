@@ -4,7 +4,6 @@ import 'react-native-gesture-handler';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import Home from './src/pages/home';
-import Sobre from './src/pages/sobre';
 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -17,11 +16,12 @@ const Tema = {
   colors: {
     ...DefaultTheme.colors,
     background: '#ffffff',
-    card: '#fbf9f9ff',
+    card: '#00000006',
+    suave: '#777',
     primary: '#11246fff',
     border: '#ddd',
     black: '#000',
-    notification: '#f67f08ff'
+    notification: '#be8b09ff'
   },
 };
 
@@ -44,7 +44,6 @@ export default function App() {
           }}
         >
           <Stack.Screen name="Home" component={Home} options={{ headerShown: false }} />
-          <Stack.Screen name="Sobre" component={Sobre} options={{ headerShown: false }} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaView>

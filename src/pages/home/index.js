@@ -43,7 +43,7 @@ export default function Home({ navigation }) {
   const { colors } = useTheme();
   const bottomSheetRef = useRef(null);
   const textInputRef = useRef(null);
-  const snapPoints = useMemo(() => ['80%'], []);
+  const snapPoints = useMemo(() => ['87%'], []);
 
   const applyOrdering = (list) => {
     const premium = list.filter(i => i.premium);
@@ -106,7 +106,7 @@ export default function Home({ navigation }) {
 
     const itemsWithAds = [];
     const premiumCount = results.filter(i => i.premium).length;
-    let firstAdPosition = premiumCount > 2 ? premiumCount : premiumCount + NUMERO_ITENS_FIXOS_POR_CLIQUES;
+    let firstAdPosition = premiumCount > 1 ? premiumCount : premiumCount + NUMERO_ITENS_FIXOS_POR_CLIQUES;
     let adCount = 0;
     let storeCountAfterFirstAd = 0;
 
@@ -151,9 +151,8 @@ export default function Home({ navigation }) {
         <View style={[styles.searchContainer, { backgroundColor: colors.background }]}>
           <View style={[styles.searchBar, {
             backgroundColor: colors.background,
-            borderColor: colors.border,
-            elevation: 8,
-            borderWidth: 1,
+            elevation: 6,
+            borderWidth: 0,
           }]}>
 
             <Pressable style={{ flex: 1, justifyContent: 'center' }} onPress={() => textInputRef.current?.focus()}>
@@ -245,9 +244,9 @@ export default function Home({ navigation }) {
         onCloseEnd={handleClose}
         onDismiss={handleClose}
         enablePanDownToClose={true}
-        backgroundStyle={{ backgroundColor: colors.card || colors.background }}
+        backgroundStyle={{ backgroundColor: colors.background }}
         backdropComponent={({ style, ...props }) => (
-          <View {...props} style={[style, { backgroundColor: '#000000', opacity: 0.5 }]} />
+          <Pressable onPress={() => bottomSheetRef.current?.close()} {...props} style={[style, { backgroundColor: '#000000', opacity: 0.5 }]} />
         )}
       >
         {selectedItem && <Detalhe item={selectedItem} colors={colors} onClose={handleClose} />}
@@ -266,7 +265,7 @@ const styles = StyleSheet.create({
   searchBar: {
     borderWidth: 1,
     borderRadius: 35,
-    height: 65,
+    height: 55,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

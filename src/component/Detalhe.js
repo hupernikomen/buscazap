@@ -5,16 +5,17 @@ import { BottomSheetView } from '@gorhom/bottom-sheet';
 import { getHorarioStatus } from '../utils/horarioUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { incrementClicks } from '../services/firebaseConnection/firestoreService';
+import { useNavigation } from '@react-navigation/native';
 
 export const Detalhe = ({ item, colors, onClose }) => {
   const horarioStatus = getHorarioStatus(item.horarios);
 
   const handleWhatsApp = async () => {
     if (!item.premium) await incrementClicks(item.id);
-    Linking.openURL(`https://wa.me/${item.whatsapp[0].replace(/\D/g, '')}`);
+    Linking.openURL(`https://wa.me/${item?.whatsapp?.principal.replace(/\D/g, '')}`);
   };
 
-
+const navigation = useNavigation()
 
   return (
     <BottomSheetView style={styles.container}>
@@ -48,18 +49,19 @@ export const Detalhe = ({ item, colors, onClose }) => {
       {/* ENDEREÇO CLICÁVEL */}
       {item.endereco?.complemento && (
         <View style={styles.addressContainer}>
-          <Ionicons nome="location-outline" size={19} color={colors.primary || '#1A73E8'} />
+          <Ionicons name="location-outline" size={19} color={colors.primary || '#1A73E8'} />
           <Text style={[styles.endereco, { color: colors.text + 'EE' }]}>
-            {item.endereco?.complemento}
+            {item.endereco?.complemento} - {item?.endereco?.bairro}
           </Text>
         </View>
       )}
 
       {/* Botão WhatsApp */}
       <Pressable onPress={handleWhatsApp} style={styles.whatsappButton}>
-        <Ionicons nome="logo-whatsapp" size={28} color="#fff" />
+        <Ionicons name="logo-whatsapp" size={28} color="#fff" />
         <Text style={styles.whatsappText}>WhatsApp</Text>
       </Pressable>
+
     </BottomSheetView>
   );
 };
@@ -67,22 +69,11 @@ export const Detalhe = ({ item, colors, onClose }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 24,
+    paddingHorizontal: 22,
     paddingTop: 16,
     paddingBottom: 32,
   },
-  closeButton: {
-    position: 'absolute',
-    top: 12,
-    right: 16,
-    zIndex: 10,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#00000015',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+
   header: {
     marginTop: 20,
     marginBottom: 18,
@@ -92,41 +83,41 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: -0.6,
     lineHeight: 34,
+    alignSelf:'center'
   },
   statusBadge: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignSelf: 'center',
+    alignItems:'center',
     marginTop: 12,
     gap: 9,
   },
   statusDot: {
-    width: 11,
-    height: 11,
+    width: 8,
+    height: 8,
     borderRadius: 6,
   },
   statusText: {
-    fontSize: 15.5,
-    fontWeight: '600',
-    letterSpacing: 0.4,
+    fontSize:12,
+    fontWeight:'500',
+    textTransform:'uppercase'
   },
   descricao: {
     fontSize: 16.8,
     marginBottom: 20,
+    textAlign:"center"
   },
   addressContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 4,
+    alignItems: 'flex-start',
+    padding: 14,
     borderRadius: 16,
     backgroundColor: '#00000006',
-    marginBottom: 28,
+    marginBottom: 22,
   },
   endereco: {
-    fontSize: 16,
-    fontWeight: '500',
     flex: 1,
+    textAlign:"center"
   },
   whatsappButton: {
     flexDirection: 'row',
@@ -137,10 +128,6 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     borderRadius: 22,
     marginTop: 'auto',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.28,
-    shadowRadius: 20,
     elevation: 14,
   },
   whatsappText: {

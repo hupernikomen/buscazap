@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "gcomercial",
-    "slug": "gcomercial",
+    "name": "Busca Zap Teresina",
+    "slug": "buscazap",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -21,7 +21,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.hupernikomen.gcomercial"
+      "package": "com.hupernikomen.buscazap"
     },
     "web": {
       "favicon": "./assets/favicon.png"

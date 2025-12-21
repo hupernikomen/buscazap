@@ -54,7 +54,7 @@ export const subscribeToStores = (searchQuery, callback) => {
   let q;
   if (searchNormalized === '') {
     // Ordena por cliques decrescente e limita para performance
-    q = query(collection(db, 'users'), orderBy('clicks', 'desc'), limit(300));
+    q = query(collection(db, 'users'), orderBy('clicks', 'desc'), limit(500));
   } else {
     // Quando há busca, não ordenamos por cliques (pois a ordenação é feita no cliente)
     q = query(collection(db, 'users'));
