@@ -16,12 +16,12 @@ const Tema = {
   colors: {
     ...DefaultTheme.colors,
     background: '#ffffff',
-    card: '#00000006',
+    card: '#00000009',
     suave: '#777',
     primary: '#11246fff',
     border: '#ddd',
     black: '#000',
-    notification: '#be8b09ff'
+    notification: '#e2a50cff'
   },
 };
 

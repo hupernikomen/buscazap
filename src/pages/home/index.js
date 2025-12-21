@@ -10,6 +10,8 @@ import {
   StyleSheet,
   Image,
   Text,
+  Linking,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@react-navigation/native';
@@ -30,6 +32,8 @@ import { subscribeToStores } from '../../services/firebaseConnection/firestoreSe
 import { normalize } from '../../utils/normalize';
 import { Item } from '../../component/Item';
 import { Detalhe } from '../../component/Detalhe';
+import { db } from '../../services/firebaseConnection/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 const NUMERO_ITENS_FIXOS_POR_CLIQUES = 3;
 
@@ -39,73 +43,151 @@ export default function Home({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
+  const [menuItens, setMenuItens] = useState([]);
 
   const { colors } = useTheme();
   const bottomSheetRef = useRef(null);
   const textInputRef = useRef(null);
   const snapPoints = useMemo(() => ['87%'], []);
 
-  const applyOrdering = (list) => {
-    const premium = list.filter(i => i.premium);
-    const nonPremium = list.filter(i => !i.premium);
-    const sortedPremium = premium.sort((a, b) => (b.clicks || 0) - (a.clicks || 0));
-    const sortedNonPremium = nonPremium.sort((a, b) => (b.clicks || 0) - (a.clicks || 0));
-    const topFixed = sortedNonPremium.slice(0, NUMERO_ITENS_FIXOS_POR_CLIQUES);
-    const remaining = sortedNonPremium.slice(NUMERO_ITENS_FIXOS_POR_CLIQUES);
-    const shuffled = [...remaining];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return [...sortedPremium, ...topFixed, ...shuffled];
-  };
-
-  const loadData = useCallback((isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
-
-    const unsub = subscribeToStores(searchQuery, (snapshot) => {
-      let data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      let filtered = data;
-
-      if (searchQuery.trim()) {
-        const words = normalize(searchQuery).split(/\s+/).filter(Boolean);
-        filtered = data.filter(item => {
-          const desc = normalize(item.description || '');
-          const tags = (item.arrayTags || '').split(',').map(t => normalize(t.trim()));
-          let matches = 0;
-          words.forEach(w => {
-            if (desc.includes(w) || tags.some(t => t.includes(w))) matches++;
-          });
-          const threshold = words.length === 1 ? 1 : Math.ceil(words.length / 2);
-          return matches >= threshold;
-        });
+  // === CARREGA MENU DO FIRESTORE (coleção: menu > documento: 1 > campo: menu) ===
+  useEffect(() => {
+    const menuRef = doc(db, 'menu', '1');
+    const unsub = onSnapshot(menuRef, (snap) => {
+      if (snap.exists() && snap.data().menu) {
+        setMenuItens(snap.data().menu);
+      } else {
+        setMenuItens([]);
       }
-
-      const finalResults = searchQuery.trim() ? filtered : applyOrdering(filtered);
-      setResults(finalResults);
-
-      if (isRefresh) setRefreshing(false);
-      else setLoading(false);
     });
+    return () => unsub();
+  }, []);
 
-    return unsub;
-  }, [searchQuery]);
+// === ORDENAÇÃO COM REVEZAMENTO ALEATÓRIO ENTRE EMPATADOS ===
+const applyOrdering = (list) => {
+  const premium = list.filter(i => i?.anuncio?.premium);
+  const nonPremium = list.filter(i => !i?.anuncio?.premium);
+
+  // 1. Premium: ordena por cliques (maior primeiro)
+  const sortedPremium = premium.sort((a, b) => (b.clicks || 0) - (a.clicks || 0));
+
+  // 2. Não premium: ordena por cliques
+  const sortedNonPremium = nonPremium.sort((a, b) => (b.clicks || 0) - (a.clicks || 0));
+
+  // 3. Pega os TOP 3 (ou menos se tiver menos que 3)
+  const topCount = Math.min(NUMERO_ITENS_FIXOS_POR_CLIQUES, sortedNonPremium.length);
+  const topFixedRaw = sortedNonPremium.slice(0, topCount);
+
+  // REVEZAMENTO ALEATÓRIO ENTRE OS TOPS
+  const topFixed = topFixedRaw
+    .map(item => ({ item, sort: Math.random() })) // adiciona número aleatório
+    .sort((a, b) => a.sort - b.sort)             // ordena pelo aleatório
+    .map(({ item }) => item);                     // devolve só o item
+
+  // 4. O resto: embaralha completamente
+  const remaining = sortedNonPremium.slice(topCount);
+  const shuffledRemaining = [...remaining];
+  for (let i = shuffledRemaining.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffledRemaining[i], shuffledRemaining[j]] = [shuffledRemaining[j], shuffledRemaining[i]];
+  }
+
+  // 5. Monta a lista final
+  return [...sortedPremium, ...topFixed, ...shuffledRemaining];
+};
+
+ // === CARREGA LOJAS COM BUSCA INTELIGENTE (prioridade: busca > premium > normal) ===
+const loadData = useCallback((isRefresh = false) => {
+  if (isRefresh) setRefreshing(true);
+  else setLoading(true);
+
+  const unsub = subscribeToStores(searchQuery, (snapshot) => {
+    let data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    let finalResults = [];
+
+    if (searchQuery.trim()) {
+      // === MODO BUSCA ATIVA ===
+      const words = normalize(searchQuery).split(/\s+/).filter(Boolean);
+
+      // Filtra primeiro
+      const filtered = data.filter(item => {
+        const desc = normalize(item.descricao || '');
+        const categoria = normalize(item.categoria || '');
+        const tagsString = (item.tags || item.arrayTags || '').toString();
+        const tags = tagsString.split(',').map(t => normalize(t.trim())).filter(Boolean);
+
+        let matches = 0;
+        words.forEach(word => {
+          if (
+            desc.includes(word) ||
+            categoria.includes(word) ||
+            tags.some(tag => tag.includes(word))
+          ) matches++;
+        });
+
+        const threshold = words.length === 1 ? 1 : Math.ceil(words.length / 2);
+        return matches >= threshold;
+      });
+
+      // === ORDENAÇÃO INTELIGENTE DURANTE A BUSCA ===
+      const comBusca = [];
+      const premium = [];
+      const normal = [];
+
+      filtered.forEach(item => {
+        const anuncio = item.anuncio || {};
+
+        if (anuncio.busca) {
+          comBusca.push(item);
+        } else if (anuncio.premium) {
+          premium.push(item);
+        } else {
+          normal.push(item);
+        }
+      });
+
+      // Ordena cada grupo por cliques (opcional, mas fica melhor)
+      comBusca.sort((a, b) => (b.clicks || 0) - (a.clicks || 0));
+      premium.sort((a, b) => (b.clicks || 0) - (a.clicks || 0));
+      normal.sort((a, b) => (b.clicks || 0) - (a.clicks || 0));
+
+      finalResults = [...comBusca, ...premium, ...normal];
+    } 
+    else {
+      // === SEM BUSCA → usa a ordenação normal (premium + top 3 + revezamento) ===
+      finalResults = applyOrdering(data);
+    }
+
+    setResults(finalResults);
+
+    if (isRefresh) setRefreshing(false);
+    else setLoading(false);
+  });
+
+  return unsub;
+}, [searchQuery]);
 
 
 
-  useEffect(() => { const unsub = loadData(); return () => unsub(); }, [loadData]);
+  useEffect(() => {
+    const unsub = loadData();
+    return () => unsub && unsub();
+  }, [loadData]);
 
-
-  // === DADOS COMPLETOS: logo + busca + itens + anúncios ===
+  // === LISTA COMPLETA ===
   const fullData = useMemo(() => {
     const logo = { type: 'logo' };
     const search = { type: 'search' };
+    const menu = menuItens.length > 0 ? { type: 'menu_horizontal', itens: menuItens } : null;
 
-    if (results.length === 0) return [logo, search];
+    const base = [logo, search];
+    if (menu) base.push(menu);
+
+    if (results.length === 0) return base;
 
     const itemsWithAds = [];
-    const premiumCount = results.filter(i => i.premium).length;
+    const premiumCount = results.filter(i => i?.anuncio?.premium).length;
     let firstAdPosition = premiumCount > 1 ? premiumCount : premiumCount + NUMERO_ITENS_FIXOS_POR_CLIQUES;
     let adCount = 0;
     let storeCountAfterFirstAd = 0;
@@ -116,8 +198,7 @@ export default function Home({ navigation }) {
         adCount++;
         storeCountAfterFirstAd = 0;
       }
-
-      itemsWithAds.push({ type: 'store', item, storeId: item.id });
+      itemsWithAds.push({ type: 'store', item, storeId: item.id, index });
 
       if (adCount > 0) {
         storeCountAfterFirstAd++;
@@ -128,12 +209,12 @@ export default function Home({ navigation }) {
       }
     });
 
-    return [logo, search, ...itemsWithAds];
-  }, [results]);
+    return [...base, ...itemsWithAds];
+  }, [results, menuItens]);
 
 
-  
-  const renderItem = ({ item }) => {
+  // === RENDERIZAÇÃO ===
+  const renderItem = ({ item, index }) => {
     if (item.type === 'logo') {
       return (
         <View style={{ alignItems: 'center', paddingTop: 20 }}>
@@ -149,13 +230,8 @@ export default function Home({ navigation }) {
     if (item.type === 'search') {
       return (
         <View style={[styles.searchContainer, { backgroundColor: colors.background }]}>
-          <View style={[styles.searchBar, {
-            backgroundColor: colors.background,
-            elevation: 6,
-            borderWidth: 0,
-          }]}>
-
-            <Pressable style={{ flex: 1, justifyContent: 'center' }} onPress={() => textInputRef.current?.focus()}>
+          <View style={[styles.searchBar, { backgroundColor: colors.background, elevation: 6, borderWidth: 0 }]}>
+            <Pressable style={{ flex: 1 }} onPress={() => textInputRef.current?.focus()}>
               <TextInput
                 ref={textInputRef}
                 style={[styles.input, { color: colors.text }]}
@@ -166,17 +242,62 @@ export default function Home({ navigation }) {
                 returnKeyType="search"
               />
             </Pressable>
-
             <Pressable style={styles.searchButton}>
               {loading ? <ActivityIndicator color={colors.primary} /> : <Ionicons name="search" size={24} color={colors.text} />}
             </Pressable>
-
           </View>
         </View>
       );
     }
 
-    
+    // MENU HORIZONTAL — AGORA APARECE!
+    if (item.type === 'menu_horizontal') {
+  if (!item.itens || item.itens.length === 0) return null;
+
+  return (
+    <View style={styles.menuWrapper}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingVertical: 12 }}
+      >
+        {item.itens.map((btn, i) => (
+          <Pressable
+            key={i}
+            onPress={() => {
+              // 1. Se tiver 'navigate' → usa navegação interna
+              if (btn.navigate) {
+                navigation.navigate(btn.navigate);
+              }
+              // 2. Se tiver 'link' → abre externo (WhatsApp, site, etc)
+              else if (btn.link) {
+                Linking.openURL(btn.link).catch(err => 
+                  console.error('Erro ao abrir link:', err)
+                );
+              }
+              // 3. Caso não tenha nada → não faz nada (ou pode mostrar alerta)
+              else {
+                console.log('Botão sem ação:', btn.titulo);
+              }
+            }}
+            style={[styles.menuButton, { backgroundColor: colors.card }]}
+          >
+            {btn.icone && (
+              <Ionicons
+                name={btn.icone}
+                size={18}
+                color={colors.primary || colors.text}
+              />
+            )}
+            <Text style={[styles.menuText, { color: colors.text }]}>
+              {btn.titulo}
+            </Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
 
     if (item.type === 'ad') {
       return (
@@ -186,11 +307,13 @@ export default function Home({ navigation }) {
       );
     }
 
+    // LOJA NORMAL
     return (
       <Item
         item={item.item}
         index={item.index}
         results={results}
+        searchQuery={searchQuery}
         onPress={(store) => {
           setSelectedItem(store);
           bottomSheetRef.current?.present();
@@ -200,10 +323,7 @@ export default function Home({ navigation }) {
     );
   };
 
-  const handleClose = () => {
-    setSelectedItem(null);
-    // setTimeout(() => textInputRef.current?.focus(), 100);
-  };
+  const handleClose = () => setSelectedItem(null);
 
   useEffect(() => {
     if (!selectedItem) return;
@@ -220,19 +340,26 @@ export default function Home({ navigation }) {
         <FlatList
           data={fullData}
           renderItem={renderItem}
-          keyExtractor={(item, index) => {
+          keyExtractor={(item) => {
             if (item.type === 'logo') return 'logo';
             if (item.type === 'search') return 'search';
-            if (item.type === 'ad') return `ad-${index}`;
+            if (item.type === 'menu_horizontal') return 'menu';
+            if (item.type === 'ad') return `ad-${Math.random()}`;
             return `store-${item.storeId}`;
           }}
-          stickyHeaderIndices={[1]}  // ← Só a busca fica fixa!
+          stickyHeaderIndices={[1]}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 22 }}
           ItemSeparatorComponent={({ leadingItem }) => {
-            if (!leadingItem || leadingItem.type === 'logo' || leadingItem.type === 'search' || leadingItem.type === 'ad') return null;
+            if (!leadingItem || ['logo', 'search', 'menu_horizontal', 'ad'].includes(leadingItem.type)) return null;
             return <View style={{ borderBottomWidth: 0.5, borderBottomColor: colors.border }} />;
           }}
+          ListFooterComponent={
+            <View style={{ borderTopWidth: 0.5, borderTopColor: colors.border, paddingVertical: 22 }}>
+              <Text style={{ textAlign: 'center' }}>Busca Zap Teresina</Text>
+              <Text style={{ textAlign: 'center', color: colors.text + '70', fontSize: 12 }}>@2025</Text>
+            </View>
+          }
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadData(true)} tintColor={colors.primary} />}
         />
       </View>
@@ -255,37 +382,24 @@ export default function Home({ navigation }) {
   );
 }
 
-// === ESTILOS 100% MANTIDOS (exatamente como você tinha antes) ===
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  searchContainer: {
-    paddingBottom: 16,
-    paddingTop: 12,
-  },
-  searchBar: {
-    borderWidth: 1,
-    borderRadius: 35,
-    height: 55,
+  searchContainer: { paddingBottom: 16, paddingTop: 12 },
+  searchBar: { borderRadius: 35, height: 55, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 22 },
+  input: { flex: 1, fontSize: 16, height: 55 },
+  searchButton: { width: 50, height: 50, alignItems: 'center', justifyContent: 'center', marginRight: -16 },
+
+  // MENU HORIZONTAL (rola junto)
+  menuButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 22,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    height: 55,
-  },
-  searchButton: {
-    width: 50,
-    height: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight:-16
-  },
-  adContainer: {
-    marginVertical: 16,
-    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 30,
+    marginRight: 6,
+    gap: 10,
     justifyContent: 'center',
   },
+
+  adContainer: { marginVertical: 16, alignItems: 'center', justifyContent: 'center' },
 });
