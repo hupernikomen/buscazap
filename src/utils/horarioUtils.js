@@ -4,60 +4,63 @@ export const getHorarioStatus = (horarios) => {
     return { text: 'Horário não informado', isOpen: false };
   }
 
-  const diasSemana = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   const agora = new Date();
-  const diaIndex = agora.getDay();
-  const diaAtual = diasSemana[diaIndex];
+  const diaIndex = agora.getDay(); // 0=domingo, 1=segunda, ..., 6=sábado
+  const minutosAgora = agora.getHours() * 60 + agora.getMinutes();
 
-  let intervalosHoje = [];
+  const diasPortugues = {
+    0: 'domingo',
+    1: 'segunda',
+    2: 'terca',
+    3: 'quarta',
+    4: 'quinta',
+    5: 'sexta',
+    6: 'sabado',
+  };
 
-  // DOMINGO
-  if (diaAtual === 'sunday' && horarios.sunday) {
-    // Se sunday for objeto → transforma em array com 1 item
-    intervalosHoje = Array.isArray(horarios.sunday) ? horarios.sunday : [horarios.sunday];
-  }
-  // SÁBADO
-  else if (diaAtual === 'saturday' && horarios.saturday) {
-    // Mesmo tratamento: garante que seja array
-    intervalosHoje = Array.isArray(horarios.saturday) ? horarios.saturday : [horarios.saturday];
-  }
-  // SEGUNDA A SEXTA → usa "week"
-  else if (horarios.week && Array.isArray(horarios.week)) {
-    intervalosHoje = horarios.week;
+  const diaAtual = diasPortugues[diaIndex];
+  let configHoje = horarios[diaAtual];
+
+  // Fallback para dias úteis (segunda a sexta)
+  if (!configHoje && diaIndex >= 1 && diaIndex <= 5) {
+    configHoje = horarios.segunda;
   }
 
-  // Nenhum horário definido para hoje
-  if (intervalosHoje.length === 0) {
+  if (!configHoje || !configHoje.abre || !configHoje.fecha) {
     return { text: 'Fechado hoje', isOpen: false };
   }
 
   const timeToMinutes = (time) => {
+    if (!time) return null;
     const [h, m] = time.split(':').map(Number);
     return h * 60 + m;
   };
 
-  const minutosAgora = agora.getHours() * 60 + agora.getMinutes();
-  let estaAberto = false;
-  let proximoClose = null;
-  let proximoOpen = null;
+  const abreMin = timeToMinutes(configHoje.abre);
+  const fechaMin = timeToMinutes(configHoje.fecha);
 
-  for (const intervalo of intervalosHoje) {
-    const openMin = timeToMinutes(intervalo.open);
-    const closeMin = timeToMinutes(intervalo.close);
+  // INTERVALO GLOBAL DE ALMOÇO
+  if (horarios.intervalo?.global === true) {
+    const inicioAlmoco = timeToMinutes(horarios.intervalo.inicio);
+    const retornoAlmoco = timeToMinutes(horarios.intervalo.retorno);
 
-    if (minutosAgora >= openMin && minutosAgora < closeMin) {
-      estaAberto = true;
-      proximoClose = intervalo.close;
-      break;
-    } else if (minutosAgora < openMin && !proximoOpen) {
-      proximoOpen = intervalo.open;
+    if (inicioAlmoco !== null && retornoAlmoco !== null) {
+      if (minutosAgora >= inicioAlmoco && minutosAgora < retornoAlmoco) {
+        return {
+          text: 'Fechado para almoço',
+          isOpen: false,
+          emIntervalo: true, // ESSA LINHA É OBRIGATÓRIA!
+        };
+      }
     }
   }
 
-  if (estaAberto && proximoClose) {
-    return { text: `Aberto - Fecha às ${proximoClose}`, isOpen: true };
-  } else if (proximoOpen) {
-    return { text: `Fechado - Abre às ${proximoOpen}`, isOpen: false };
+  const estaAberto = minutosAgora >= abreMin && minutosAgora < fechaMin;
+
+  if (estaAberto) {
+    return { text: `Aberto - Fecha às ${configHoje.fecha}`, isOpen: true };
+  } else if (minutosAgora < abreMin) {
+    return { text: `Fechado - Abre às ${configHoje.abre}`, isOpen: false };
   } else {
     return { text: 'Fechado', isOpen: false };
   }

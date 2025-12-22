@@ -4,6 +4,8 @@ import 'react-native-gesture-handler';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import Home from './src/pages/home';
+import Proposta from './src/pages/proposta';
+
 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -16,7 +18,7 @@ const Tema = {
   colors: {
     ...DefaultTheme.colors,
     background: '#ffffff',
-    card: '#00000009',
+    card: '#00000008',
     suave: '#777',
     primary: '#11246fff',
     border: '#ddd',
@@ -44,6 +46,7 @@ export default function App() {
           }}
         >
           <Stack.Screen name="Home" component={Home} options={{ headerShown: false }} />
+          <Stack.Screen name="Proposta" component={Proposta} options={{ headerShadowVisible:false }} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaView>

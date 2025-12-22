@@ -7,7 +7,6 @@ import { getHorarioStatus } from '../utils/horarioUtils';
 const NUMERO_ITENS_FIXOS_POR_CLIQUES = 3;
 
 export const Item = ({ item, index, results, onPress, colors, searchQuery }) => {
-
   // PROTEÇÃO TOTAL CONTRA O ERRO "slice of undefined"
   const calcularDestaque = () => {
     if (item?.anuncio?.premium) return false;
@@ -24,6 +23,19 @@ export const Item = ({ item, index, results, onPress, colors, searchQuery }) => 
   const isPremium = item?.anuncio?.premium === true;
   const isBusca = item?.anuncio?.busca === true;
 
+  // === COR INTELIGENTE DO NOME (agora 100% correta) ===
+  const nomeCor =
+    // Durante busca → destaca só quem tem busca: true
+    (searchQuery?.trim() && isBusca)
+      ? colors.notification
+      // Sem busca → destaca só premium
+      : (!searchQuery?.trim() && isPremium)
+        ? colors.notification
+        : colors.black;
+
+  // === STATUS DE HORÁRIO (agora entende português) ===
+  const horarioStatus = getHorarioStatus(item.horarios);
+
   return (
     <TouchableOpacity
       activeOpacity={0.7}
@@ -32,23 +44,7 @@ export const Item = ({ item, index, results, onPress, colors, searchQuery }) => 
     >
       <View style={styles.content}>
         {/* Nome da loja */}
-        {/* COR INTELIGENTE: muda conforme o contexto */}
-        <Text
-          style={[
-            styles.nome,
-            {
-              color:
-                // Durante busca → só destaca se tiver busca: true
-                (searchQuery?.trim() && item?.anuncio?.busca)
-                  ? colors.notification
-                  // Sem busca → só destaca se tiver premium: true
-                  : (!searchQuery?.trim() && item?.anuncio?.premium)
-                    ? colors.notification
-                    : colors.black
-            }
-          ]}
-          numberOfLines={1}
-        >
+        <Text style={[styles.nome, { color: nomeCor }]} numberOfLines={1}>
           {item.nome}
         </Text>
 
@@ -69,19 +65,17 @@ export const Item = ({ item, index, results, onPress, colors, searchQuery }) => 
           </View>
 
           <View style={styles.right}>
-            {/* Patrocinado (muito discreto) */}
-            {isPremium && (
-              <Text style={[styles.sponsored, { color: colors.text + '70' }]}>
-                ・ Anúncio pago
-              </Text>
-            )}
-            {isBusca && !!searchQuery && (
+            {/* Anúncio pago — aparece se for premium OU busca (durante busca) */}
+            {(isPremium || (isBusca && searchQuery?.trim())) && (
               <Text style={[styles.sponsored, { color: colors.text + '70' }]}>
                 ・ Anúncio pago
               </Text>
             )}
 
-            
+            {/* Ícone de destaque (opcional) */}
+            {calcularDestaque() && (
+              <Ionicons name="trending-up" size={16} color={colors.primary} />
+            )}
           </View>
         </View>
       </View>
@@ -89,7 +83,6 @@ export const Item = ({ item, index, results, onPress, colors, searchQuery }) => 
   );
 };
 
-// ESTILOS 100% ORIGINAIS — NADA MUDOU
 const styles = StyleSheet.create({
   container: {
     paddingVertical: 12,
@@ -110,9 +103,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
   },
-  left: {
-    flex: 1,
-  },
+  left: { flex: 1 },
   categoria: {
     fontSize: 10,
     textTransform: 'uppercase',
@@ -121,6 +112,7 @@ const styles = StyleSheet.create({
   right: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
   sponsored: {
     fontSize: 12,

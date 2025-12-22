@@ -17,7 +17,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@react-navigation/native';
 import { BottomSheetModal, BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { BackHandler } from 'react-native';
-
 import {
   MobileAds,
   BannerAd,
@@ -25,196 +24,183 @@ import {
   TestIds,
 } from 'react-native-google-mobile-ads';
 
-MobileAds().initialize();
-const AD_UNIT_ID = __DEV__ ? TestIds.BANNER : 'ca-app-pub-9531253714806304/5581486318';
 
 import { subscribeToStores } from '../../services/firebaseConnection/firestoreService';
 import { normalize } from '../../utils/normalize';
+import { processarPropostasConfirmadas } from '../../utils/permissaoProposta';
+import { carregarMenuEmTempoReal } from '../../utils/menuRolagem';
 import { Item } from '../../component/Item';
 import { Detalhe } from '../../component/Detalhe';
-import { db } from '../../services/firebaseConnection/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
 
-const NUMERO_ITENS_FIXOS_POR_CLIQUES = 3;
+MobileAds().initialize();
+const ID_ANUNCIO = __DEV__ ? TestIds.BANNER : 'ca-app-pub-9531253714806304/5581486318';
+const ITENS_FIXOS_POR_CLIQUES = 3;
 
 export default function Home({ navigation }) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [selectedItem, setSelectedItem] = useState(null);
-  const [menuItens, setMenuItens] = useState([]);
+  const [termoBusca, setTermoBusca] = useState('');
+  const [resultados, setResultados] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+  const [atualizando, setAtualizando] = useState(false);
+  const [itemSelecionado, setItemSelecionado] = useState(null);
+  const [itensMenu, setItensMenu] = useState([]);
 
   const { colors } = useTheme();
-  const bottomSheetRef = useRef(null);
-  const textInputRef = useRef(null);
-  const snapPoints = useMemo(() => ['87%'], []);
+  const modalRef = useRef(null);
+  const inputRef = useRef(null);
+  const pontosModal = useMemo(() => ['87%'], []);
 
-  // === CARREGA MENU DO FIRESTORE (coleção: menu > documento: 1 > campo: menu) ===
   useEffect(() => {
-    const menuRef = doc(db, 'menu', '1');
-    const unsub = onSnapshot(menuRef, (snap) => {
-      if (snap.exists() && snap.data().menu) {
-        setMenuItens(snap.data().menu);
-      } else {
-        setMenuItens([]);
-      }
-    });
-    return () => unsub();
+    // Inicia o listener do menu
+    const cancelar = carregarMenuEmTempoReal(setItensMenu);
+
+    // Cancela quando sair da tela
+    return () => cancelar();
   }, []);
 
-// === ORDENAÇÃO COM REVEZAMENTO ALEATÓRIO ENTRE EMPATADOS ===
-const applyOrdering = (list) => {
-  const premium = list.filter(i => i?.anuncio?.premium);
-  const nonPremium = list.filter(i => !i?.anuncio?.premium);
 
-  // 1. Premium: ordena por cliques (maior primeiro)
-  const sortedPremium = premium.sort((a, b) => (b.clicks || 0) - (a.clicks || 0));
 
-  // 2. Não premium: ordena por cliques
-  const sortedNonPremium = nonPremium.sort((a, b) => (b.clicks || 0) - (a.clicks || 0));
 
-  // 3. Pega os TOP 3 (ou menos se tiver menos que 3)
-  const topCount = Math.min(NUMERO_ITENS_FIXOS_POR_CLIQUES, sortedNonPremium.length);
-  const topFixedRaw = sortedNonPremium.slice(0, topCount);
 
-  // REVEZAMENTO ALEATÓRIO ENTRE OS TOPS
-  const topFixed = topFixedRaw
-    .map(item => ({ item, sort: Math.random() })) // adiciona número aleatório
-    .sort((a, b) => a.sort - b.sort)             // ordena pelo aleatório
-    .map(({ item }) => item);                     // devolve só o item
+  // === CARREGA DADOS COM BUSCA INTELIGENTE ===
+  const carregarDados = useCallback(async (atualizar = false) => {
+    if (atualizar) setAtualizando(true);
+    else setCarregando(true);
 
-  // 4. O resto: embaralha completamente
-  const remaining = sortedNonPremium.slice(topCount);
-  const shuffledRemaining = [...remaining];
-  for (let i = shuffledRemaining.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffledRemaining[i], shuffledRemaining[j]] = [shuffledRemaining[j], shuffledRemaining[i]];
-  }
+    await processarPropostasConfirmadas();
 
-  // 5. Monta a lista final
-  return [...sortedPremium, ...topFixed, ...shuffledRemaining];
-};
+    const cancelar = subscribeToStores(termoBusca, (snapshot) => {
+      let dados = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(item => item?.anuncio?.postagem === true);
 
- // === CARREGA LOJAS COM BUSCA INTELIGENTE (prioridade: busca > premium > normal) ===
-const loadData = useCallback((isRefresh = false) => {
-  if (isRefresh) setRefreshing(true);
-  else setLoading(true);
+      let resultadosFinais = [];
 
-  const unsub = subscribeToStores(searchQuery, (snapshot) => {
-    let data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      if (termoBusca.trim()) {
+        const palavras = normalize(termoBusca).split(/\s+/).filter(Boolean);
 
-    let finalResults = [];
+        const filtrados = dados.filter(item => {
+          const desc = normalize(item.descricao || '');
+          const categoria = normalize(item.categoria || '');
+          const tagsString = (item.tags || item.arrayTags || '').toString();
+          const tags = tagsString.split(',').map(t => normalize(t.trim())).filter(Boolean);
 
-    if (searchQuery.trim()) {
-      // === MODO BUSCA ATIVA ===
-      const words = normalize(searchQuery).split(/\s+/).filter(Boolean);
-
-      // Filtra primeiro
-      const filtered = data.filter(item => {
-        const desc = normalize(item.descricao || '');
-        const categoria = normalize(item.categoria || '');
-        const tagsString = (item.tags || item.arrayTags || '').toString();
-        const tags = tagsString.split(',').map(t => normalize(t.trim())).filter(Boolean);
-
-        let matches = 0;
-        words.forEach(word => {
-          if (
-            desc.includes(word) ||
-            categoria.includes(word) ||
-            tags.some(tag => tag.includes(word))
-          ) matches++;
+          let acertos = 0;
+          palavras.forEach(palavra => {
+            if (desc.includes(palavra) || categoria.includes(palavra) || tags.some(t => t.includes(palavra))) {
+              acertos++;
+            }
+          });
+          const limite = palavras.length === 1 ? 1 : Math.ceil(palavras.length / 2);
+          return acertos >= limite;
         });
 
-        const threshold = words.length === 1 ? 1 : Math.ceil(words.length / 2);
-        return matches >= threshold;
-      });
+        const comBusca = [];
+        const premium = [];
+        const resto = [];
 
-      // === ORDENAÇÃO INTELIGENTE DURANTE A BUSCA ===
-      const comBusca = [];
-      const premium = [];
-      const normal = [];
+        filtrados.forEach(item => {
+          const anuncio = item.anuncio || {};
+          if (anuncio.busca) comBusca.push(item);
+          else if (anuncio.premium) premium.push(item);
+          else resto.push(item);
+        });
 
-      filtered.forEach(item => {
-        const anuncio = item.anuncio || {};
+        comBusca.sort((a, b) => (b.clicks || 0) - (a.clicks || 0));
+        premium.sort((a, b) => (b.clicks || 0) - (a.clicks || 0));
+        resto.sort((a, b) => (b.clicks || 0) - (a.clicks || 0));
 
-        if (anuncio.busca) {
-          comBusca.push(item);
-        } else if (anuncio.premium) {
-          premium.push(item);
-        } else {
-          normal.push(item);
-        }
-      });
+        resultadosFinais = [...comBusca, ...premium, ...resto];
+      } else {
+        resultadosFinais = ordenarNormal(dados);
+      }
 
-      // Ordena cada grupo por cliques (opcional, mas fica melhor)
-      comBusca.sort((a, b) => (b.clicks || 0) - (a.clicks || 0));
-      premium.sort((a, b) => (b.clicks || 0) - (a.clicks || 0));
-      normal.sort((a, b) => (b.clicks || 0) - (a.clicks || 0));
+      setResultados(resultadosFinais);
+      if (atualizar) setAtualizando(false);
+      else setCarregando(false);
+    });
 
-      finalResults = [...comBusca, ...premium, ...normal];
-    } 
-    else {
-      // === SEM BUSCA → usa a ordenação normal (premium + top 3 + revezamento) ===
-      finalResults = applyOrdering(data);
-    }
-
-    setResults(finalResults);
-
-    if (isRefresh) setRefreshing(false);
-    else setLoading(false);
-  });
-
-  return unsub;
-}, [searchQuery]);
-
-
+    return cancelar;
+  }, [termoBusca]);
 
   useEffect(() => {
-    const unsub = loadData();
-    return () => unsub && unsub();
-  }, [loadData]);
+    let cancelar = () => { };
+    const iniciar = async () => {
+      setCarregando(true);
+      await processarPropostasConfirmadas();
+      cancelar = carregarDados();
+    };
+    iniciar();
+    return () => typeof cancelar === 'function' && cancelar();
+  }, [carregarDados]);
+
+
+
+  // === ORDENAÇÃO NORMAL (sem busca) ===
+  const ordenarNormal = (lista) => {
+    const premium = lista.filter(i => i?.anuncio?.premium);
+    const outros = lista.filter(i => !i?.anuncio?.premium);
+
+    const premiumOrdenado = premium.sort((a, b) => (b.clicks || 0) - (a.clicks || 0));
+    const outrosOrdenado = outros.sort((a, b) => (b.clicks || 0) - (a.clicks || 0));
+
+    const quantidadeFixa = Math.min(ITENS_FIXOS_POR_CLIQUES, outrosOrdenado.length);
+    const topoFixoBruto = outrosOrdenado.slice(0, quantidadeFixa);
+    const topoFixo = topoFixoBruto
+      .map(i => ({ i, r: Math.random() }))
+      .sort((a, b) => a.r - b.r)
+      .map(({ i }) => i);
+
+    const restantes = outrosOrdenado.slice(quantidadeFixa);
+    const embaralhados = [...restantes];
+    for (let i = embaralhados.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [embaralhados[i], embaralhados[j]] = [embaralhados[j], embaralhados[i]];
+    }
+
+    return [...premiumOrdenado, ...topoFixo, ...embaralhados];
+  };
+
+
 
   // === LISTA COMPLETA ===
-  const fullData = useMemo(() => {
+  const listaCompleta = useMemo(() => {
     const logo = { type: 'logo' };
-    const search = { type: 'search' };
-    const menu = menuItens.length > 0 ? { type: 'menu_horizontal', itens: menuItens } : null;
+    const busca = { type: 'search' };
+    const menu = itensMenu.length > 0 ? { type: 'menu_horizontal', itens: itensMenu } : null;
 
-    const base = [logo, search];
+    const base = [logo, busca];
     if (menu) base.push(menu);
 
-    if (results.length === 0) return base;
+    if (resultados.length === 0) return base;
 
-    const itemsWithAds = [];
-    const premiumCount = results.filter(i => i?.anuncio?.premium).length;
-    let firstAdPosition = premiumCount > 1 ? premiumCount : premiumCount + NUMERO_ITENS_FIXOS_POR_CLIQUES;
-    let adCount = 0;
-    let storeCountAfterFirstAd = 0;
+    const itensComAnuncios = [];
+    const quantidadePremium = resultados.filter(i => i?.anuncio?.premium).length;
+    let posicaoPrimeiroAnuncio = quantidadePremium > 1 ? quantidadePremium : quantidadePremium + ITENS_FIXOS_POR_CLIQUES;
+    let contadorAnuncios = 0;
+    let contadorItensDepoisAnuncio = 0;
 
-    results.forEach((item, index) => {
-      if (index === firstAdPosition && adCount === 0) {
-        itemsWithAds.push({ type: 'ad' });
-        adCount++;
-        storeCountAfterFirstAd = 0;
+    resultados.forEach((item, indice) => {
+      if (indice === posicaoPrimeiroAnuncio && contadorAnuncios === 0) {
+        itensComAnuncios.push({ type: 'ad' });
+        contadorAnuncios++;
+        contadorItensDepoisAnuncio = 0;
       }
-      itemsWithAds.push({ type: 'store', item, storeId: item.id, index });
+      itensComAnuncios.push({ type: 'store', item, storeId: item.id, index: indice });
 
-      if (adCount > 0) {
-        storeCountAfterFirstAd++;
-        if (storeCountAfterFirstAd % 15 === 0 && index < results.length - 1) {
-          itemsWithAds.push({ type: 'ad' });
-          adCount++;
+      if (contadorAnuncios > 0) {
+        contadorItensDepoisAnuncio++;
+        if (contadorItensDepoisAnuncio % 15 === 0 && indice < resultados.length - 1) {
+          itensComAnuncios.push({ type: 'ad' });
+          contadorAnuncios++;
         }
       }
     });
 
-    return [...base, ...itemsWithAds];
-  }, [results, menuItens]);
-
+    return [...base, ...itensComAnuncios];
+  }, [resultados, itensMenu]);
 
   // === RENDERIZAÇÃO ===
-  const renderItem = ({ item, index }) => {
+  const renderizarItem = ({ item, index }) => {
     if (item.type === 'logo') {
       return (
         <View style={{ alignItems: 'center', paddingTop: 20 }}>
@@ -231,115 +217,106 @@ const loadData = useCallback((isRefresh = false) => {
       return (
         <View style={[styles.searchContainer, { backgroundColor: colors.background }]}>
           <View style={[styles.searchBar, { backgroundColor: colors.background, elevation: 6, borderWidth: 0 }]}>
-            <Pressable style={{ flex: 1 }} onPress={() => textInputRef.current?.focus()}>
+            <Pressable style={{ flex: 1 }} onPress={() => inputRef.current?.focus()}>
               <TextInput
-                ref={textInputRef}
+                ref={inputRef}
                 style={[styles.input, { color: colors.text }]}
                 placeholder="O que você procura?"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
+                value={termoBusca}
+                onChangeText={setTermoBusca}
                 clearButtonMode="while-editing"
                 returnKeyType="search"
               />
             </Pressable>
             <Pressable style={styles.searchButton}>
-              {loading ? <ActivityIndicator color={colors.primary} /> : <Ionicons name="search" size={24} color={colors.text} />}
+              {carregando ? <ActivityIndicator color={colors.primary} /> : <Ionicons name="search" size={24} color={colors.text} />}
             </Pressable>
           </View>
         </View>
       );
     }
 
-    // MENU HORIZONTAL — AGORA APARECE!
     if (item.type === 'menu_horizontal') {
-  if (!item.itens || item.itens.length === 0) return null;
+      if (!item.itens || item.itens.length === 0) return null;
 
-  return (
-    <View style={styles.menuWrapper}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingVertical: 12 }}
-      >
-        {item.itens.map((btn, i) => (
-          <Pressable
-            key={i}
-            onPress={() => {
-              // 1. Se tiver 'navigate' → usa navegação interna
-              if (btn.navigate) {
-                navigation.navigate(btn.navigate);
-              }
-              // 2. Se tiver 'link' → abre externo (WhatsApp, site, etc)
-              else if (btn.link) {
-                Linking.openURL(btn.link).catch(err => 
-                  console.error('Erro ao abrir link:', err)
-                );
-              }
-              // 3. Caso não tenha nada → não faz nada (ou pode mostrar alerta)
-              else {
-                console.log('Botão sem ação:', btn.titulo);
-              }
-            }}
-            style={[styles.menuButton, { backgroundColor: colors.card }]}
-          >
-            {btn.icone && (
-              <Ionicons
-                name={btn.icone}
-                size={18}
-                color={colors.primary || colors.text}
-              />
-            )}
-            <Text style={[styles.menuText, { color: colors.text }]}>
-              {btn.titulo}
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
-    </View>
-  );
-}
+      const botaoFixo = {
+        titulo: 'Anuncie Grátis',
+        icone: 'megaphone-outline',
+        navigate: 'Proposta',
+      };
 
-    if (item.type === 'ad') {
       return (
-        <View style={styles.adContainer}>
-          <BannerAd unitId={AD_UNIT_ID} size={BannerAdSize.LARGE_BANNER} requestOptions={{ requestNonPersonalizedAdsOnly: true }} />
+        <View style={styles.menuWrapper}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 8 }}>
+            {/* BOTÃO FIXO */}
+            <Pressable
+              onPress={() => navigation.navigate(botaoFixo.navigate)}
+              style={[styles.menuButton, { backgroundColor: '#464a4cff' }]}
+            >
+              <Text style={[styles.menuText, { color: '#fff' }]}>{botaoFixo.titulo}</Text>
+            </Pressable>
+
+            {/* BOTÕES DO FIREBASE (só com status: true) */}
+            {item.itens
+              .filter(btn => btn.status === true)
+              .map((btn, i) => (
+                <Pressable
+                  key={i}
+                  onPress={() => {
+                    if (btn.navigate) navigation.navigate(btn.navigate);
+                    else if (btn.link) Linking.openURL(btn.link).catch(() => { });
+                  }}
+                  style={[styles.menuButton, { backgroundColor: colors.card }]}
+                >
+                  {btn.icone && <Ionicons name={btn.icone} size={18} color="#fff" />}
+                  <Text style={[styles.menuText, { color: colors.text }]}>{btn.titulo}</Text>
+                </Pressable>
+              ))}
+          </ScrollView>
         </View>
       );
     }
 
-    // LOJA NORMAL
+    if (item.type === 'ad') {
+      return (
+        <View style={styles.adContainer}>
+          <BannerAd unitId={ID_ANUNCIO} size={BannerAdSize.LARGE_BANNER} requestOptions={{ requestNonPersonalizedAdsOnly: true }} />
+        </View>
+      );
+    }
+
     return (
       <Item
         item={item.item}
         index={item.index}
-        results={results}
-        searchQuery={searchQuery}
-        onPress={(store) => {
-          setSelectedItem(store);
-          bottomSheetRef.current?.present();
+        results={resultados}
+        searchQuery={termoBusca}
+        onPress={(loja) => {
+          setItemSelecionado(loja);
+          modalRef.current?.present();
         }}
         colors={colors}
       />
     );
   };
 
-  const handleClose = () => setSelectedItem(null);
+  const fecharModal = () => setItemSelecionado(null);
 
   useEffect(() => {
-    if (!selectedItem) return;
+    if (!itemSelecionado) return;
     const handler = BackHandler.addEventListener('hardwareBackPress', () => {
-      bottomSheetRef.current?.close();
+      modalRef.current?.close();
       return true;
     });
     return () => handler.remove();
-  }, [selectedItem]);
+  }, [itemSelecionado]);
 
   return (
     <BottomSheetModalProvider>
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <FlatList
-          data={fullData}
-          renderItem={renderItem}
+          data={listaCompleta}
+          renderItem={renderizarItem}
           keyExtractor={(item) => {
             if (item.type === 'logo') return 'logo';
             if (item.type === 'search') return 'search';
@@ -360,23 +337,23 @@ const loadData = useCallback((isRefresh = false) => {
               <Text style={{ textAlign: 'center', color: colors.text + '70', fontSize: 12 }}>@2025</Text>
             </View>
           }
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadData(true)} tintColor={colors.primary} />}
+          refreshControl={<RefreshControl refreshing={atualizando} onRefresh={() => carregarDados(true)} tintColor={colors.primary} />}
         />
       </View>
 
       <BottomSheetModal
-        ref={bottomSheetRef}
+        ref={modalRef}
         index={1}
-        snapPoints={snapPoints}
-        onCloseEnd={handleClose}
-        onDismiss={handleClose}
+        snapPoints={pontosModal}
+        onCloseEnd={fecharModal}
+        onDismiss={fecharModal}
         enablePanDownToClose={true}
         backgroundStyle={{ backgroundColor: colors.background }}
         backdropComponent={({ style, ...props }) => (
-          <Pressable onPress={() => bottomSheetRef.current?.close()} {...props} style={[style, { backgroundColor: '#000000', opacity: 0.5 }]} />
+          <Pressable onPress={() => modalRef.current?.close()} {...props} style={[style, { backgroundColor: '#000000', opacity: 0.5 }]} />
         )}
       >
-        {selectedItem && <Detalhe item={selectedItem} colors={colors} onClose={handleClose} />}
+        {itemSelecionado && <Detalhe item={itemSelecionado} colors={colors} onClose={fecharModal} />}
       </BottomSheetModal>
     </BottomSheetModalProvider>
   );
@@ -388,18 +365,17 @@ const styles = StyleSheet.create({
   searchBar: { borderRadius: 35, height: 55, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 22 },
   input: { flex: 1, fontSize: 16, height: 55 },
   searchButton: { width: 50, height: 50, alignItems: 'center', justifyContent: 'center', marginRight: -16 },
-
-  // MENU HORIZONTAL (rola junto)
+  menuWrapper: { paddingBottom: 12 },
   menuButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 30,
     marginRight: 6,
     gap: 10,
     justifyContent: 'center',
   },
-
+  menuText: { fontSize: 15, fontWeight: '500' },
   adContainer: { marginVertical: 16, alignItems: 'center', justifyContent: 'center' },
 });

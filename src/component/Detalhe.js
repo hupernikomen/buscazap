@@ -5,48 +5,65 @@ import { BottomSheetView } from '@gorhom/bottom-sheet';
 import { getHorarioStatus } from '../utils/horarioUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { incrementClicks } from '../services/firebaseConnection/firestoreService';
-import { useNavigation } from '@react-navigation/native';
 
 export const Detalhe = ({ item, colors, onClose }) => {
   const horarioStatus = getHorarioStatus(item.horarios);
+  const temIntervalo = item.horarios?.intervalo?.global === true;
 
   const handleWhatsApp = async () => {
     if (!item.premium) await incrementClicks(item.id);
     Linking.openURL(`https://wa.me/${item?.whatsapp?.principal.replace(/\D/g, '')}`);
   };
 
-const navigation = useNavigation()
-
   return (
     <BottomSheetView style={styles.container}>
-
       <View style={styles.header}>
         <Text style={[styles.storenome, { color: colors.text }]}>{item.nome}</Text>
+
+        {item.descricao && (
+          <Text style={[styles.descricao, { color: colors.text + 'CC' }]}>
+            {item.descricao}
+          </Text>
+        )}
 
         {horarioStatus && (
           <View style={styles.statusBadge}>
             <View style={[
               styles.statusDot,
-              { backgroundColor: horarioStatus.isOpen ? '#34A853' : '#F44336' }
+              {
+                backgroundColor:
+                  horarioStatus.isOpen ? '#34A853' :
+                    horarioStatus.emIntervalo ? '#FF9800' : '#F44336'
+              }
             ]} />
             <Text style={[
               styles.statusText,
-              { color: horarioStatus.isOpen ? '#34A853' : '#F44336' }
+              {
+                color:
+                  horarioStatus.isOpen ? '#34A853' :
+                    horarioStatus.emIntervalo ? '#FF9800' : '#F44336'
+              }
             ]}>
               {horarioStatus.text}
             </Text>
           </View>
         )}
+
+        {/* MENSAGEM DE INTERVALO — só aparece se tiver intervalo configurado */}
+        {temIntervalo && (
+          <Text style={[styles.intervaloInfo, { color: colors.suave }]}>
+            {horarioStatus.emIntervalo
+              ? `Voltamos às ${item.horarios.intervalo.retorno}`
+              : horarioStatus.isOpen
+                ? `Intervalo de ${item.horarios.intervalo.inicio} às ${item.horarios.intervalo.retorno}`
+                : null
+            }
+          </Text>
+        )}
       </View>
 
-      {/* Descrição */}
-      {item.descricao && (
-        <Text style={[styles.descricao, { color: colors.text + 'CC' }]}>
-          {item.descricao}
-        </Text>
-      )}
 
-      {/* ENDEREÇO CLICÁVEL */}
+
       {item.endereco?.complemento && (
         <View style={styles.addressContainer}>
           <Ionicons name="location-outline" size={19} color={colors.primary || '#1A73E8'} />
@@ -56,12 +73,10 @@ const navigation = useNavigation()
         </View>
       )}
 
-      {/* Botão WhatsApp */}
       <Pressable onPress={handleWhatsApp} style={styles.whatsappButton}>
         <Ionicons name="logo-whatsapp" size={28} color="#fff" />
         <Text style={styles.whatsappText}>WhatsApp</Text>
       </Pressable>
-
     </BottomSheetView>
   );
 };
@@ -73,43 +88,47 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 32,
   },
-
   header: {
     marginTop: 20,
     marginBottom: 18,
+    alignItems: 'center',
   },
   storenome: {
     fontSize: 28,
     fontWeight: '800',
     letterSpacing: -0.6,
     lineHeight: 34,
-    alignSelf:'center'
   },
   statusBadge: {
     flexDirection: 'row',
-    alignSelf: 'center',
-    alignItems:'center',
+    alignItems: 'center',
     marginTop: 12,
     gap: 9,
   },
   statusDot: {
-    width: 8,
-    height: 8,
+    width: 10,
+    height: 10,
     borderRadius: 6,
   },
   statusText: {
-    fontSize:12,
-    fontWeight:'500',
-    textTransform:'uppercase'
+    fontSize: 13,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  intervaloInfo: {
+    marginTop: 6,
+    fontSize: 16,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   descricao: {
     fontSize: 16.8,
-    marginBottom: 20,
-    textAlign:"center"
+    marginVertical: 20,
+    textAlign: 'center',
   },
   addressContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     padding: 14,
     borderRadius: 16,
     backgroundColor: '#00000006',
@@ -117,7 +136,7 @@ const styles = StyleSheet.create({
   },
   endereco: {
     flex: 1,
-    textAlign:"center"
+    textAlign: 'center',
   },
   whatsappButton: {
     flexDirection: 'row',
@@ -134,6 +153,5 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18.5,
     fontWeight: '700',
-    letterSpacing: 0.4,
   },
 });
