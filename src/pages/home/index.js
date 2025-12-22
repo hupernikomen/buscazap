@@ -111,7 +111,7 @@ export default function Home({ navigation }) {
 
         resultadosFinais = [...comBusca, ...premium, ...resto];
       } else {
-        resultadosFinais = ordenarNormal(dados);
+        resultadosFinais = ordemInicial(dados);
       }
 
       setResultados(resultadosFinais);
@@ -121,6 +121,8 @@ export default function Home({ navigation }) {
 
     return cancelar;
   }, [termoBusca]);
+
+
 
   useEffect(() => {
     let cancelar = () => { };
@@ -136,7 +138,7 @@ export default function Home({ navigation }) {
 
 
   // === ORDENAÇÃO NORMAL (sem busca) ===
-  const ordenarNormal = (lista) => {
+  const ordemInicial = (lista) => {
     const premium = lista.filter(i => i?.anuncio?.premium);
     const outros = lista.filter(i => !i?.anuncio?.premium);
 
@@ -168,10 +170,11 @@ export default function Home({ navigation }) {
     const busca = { type: 'search' };
     const menu = itensMenu.length > 0 ? { type: 'menu_horizontal', itens: itensMenu } : null;
 
-    const base = [logo, busca];
-    if (menu) base.push(menu);
+    const cabecalho = [logo, busca];
 
-    if (resultados.length === 0) return base;
+    if (menu) cabecalho.push(menu);
+
+    if (resultados.length === 0) return cabecalho;
 
     const itensComAnuncios = [];
     const quantidadePremium = resultados.filter(i => i?.anuncio?.premium).length;
@@ -196,7 +199,7 @@ export default function Home({ navigation }) {
       }
     });
 
-    return [...base, ...itensComAnuncios];
+    return [...cabecalho, ...itensComAnuncios];
   }, [resultados, itensMenu]);
 
   // === RENDERIZAÇÃO ===
@@ -215,7 +218,7 @@ export default function Home({ navigation }) {
 
     if (item.type === 'search') {
       return (
-        <View style={[styles.searchContainer, { backgroundColor: colors.background }]}>
+        <View style={[styles.searchContainer, { backgroundColor: colors.background, paddingHorizontal:22 }]}>
           <View style={[styles.searchBar, { backgroundColor: colors.background, elevation: 6, borderWidth: 0 }]}>
             <Pressable style={{ flex: 1 }} onPress={() => inputRef.current?.focus()}>
               <TextInput
@@ -247,14 +250,24 @@ export default function Home({ navigation }) {
 
       return (
         <View style={styles.menuWrapper}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 8 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 8, padding:22 }}>
             {/* BOTÃO FIXO */}
             <Pressable
               onPress={() => navigation.navigate(botaoFixo.navigate)}
-              style={[styles.menuButton, { backgroundColor: '#464a4cff' }]}
+              style={[styles.menuButton, {
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 16,
+                paddingVertical: 12,
+                borderRadius: 22,
+                marginBottom: 12,
+                elevation: 10, backgroundColor: colors.botao
+              }]}
             >
               <Text style={[styles.menuText, { color: '#fff' }]}>{botaoFixo.titulo}</Text>
             </Pressable>
+           
 
             {/* BOTÕES DO FIREBASE (só com status: true) */}
             {item.itens
@@ -326,7 +339,6 @@ export default function Home({ navigation }) {
           }}
           stickyHeaderIndices={[1]}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 22 }}
           ItemSeparatorComponent={({ leadingItem }) => {
             if (!leadingItem || ['logo', 'search', 'menu_horizontal', 'ad'].includes(leadingItem.type)) return null;
             return <View style={{ borderBottomWidth: 0.5, borderBottomColor: colors.border }} />;

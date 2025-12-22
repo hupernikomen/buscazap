@@ -20,10 +20,11 @@ const Tema = {
     background: '#ffffff',
     card: '#00000008',
     suave: '#777',
-    primary: '#11246fff',
+    primary: '#000',
     border: '#ddd',
-    black: '#000',
-    notification: '#e2a50cff'
+    notificacao: '#e2a50cff',
+    botao: '#1bc75aff',
+    destaque: '#dd8b06ff'
   },
 };
 
@@ -46,7 +47,7 @@ export default function App() {
           }}
         >
           <Stack.Screen name="Home" component={Home} options={{ headerShown: false }} />
-          <Stack.Screen name="Proposta" component={Proposta} options={{ headerShadowVisible:false }} />
+          <Stack.Screen name="Proposta" component={Proposta} options={{ headerShadowVisible:false, title:'Solicitar de Anúncio' }} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaView>

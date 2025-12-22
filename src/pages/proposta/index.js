@@ -145,12 +145,12 @@ export default function Proposta({ navigation }) {
           <Pressable
             onPress={handleSubmit}
             disabled={loading}
-            style={[styles.button, { backgroundColor: '#25D366' }]}
+            style={[styles.button, { backgroundColor: colors.botao }]}
           >
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>Enviar Proposta</Text>
+              <Text style={styles.buttonText}>Enviar Solicitação</Text>
             )}
           </Pressable>
 
@@ -196,11 +196,14 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   button: {
-    height: 56,
-    borderRadius: 16,
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 30,
+    justifyContent: 'center',
+    gap: 16,
+    paddingVertical: 20,
+    borderRadius: 22,
+    marginVertical: 30,
+    elevation: 14,
   },
   buttonText: {
     color: '#fff',

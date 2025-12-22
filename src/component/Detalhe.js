@@ -32,16 +32,16 @@ export const Detalhe = ({ item, colors, onClose }) => {
               styles.statusDot,
               {
                 backgroundColor:
-                  horarioStatus.isOpen ? '#34A853' :
-                    horarioStatus.emIntervalo ? '#FF9800' : '#F44336'
+                  horarioStatus.isOpen ? colors.botao :
+                    horarioStatus.emIntervalo ? colors.destaque : '#F44336'
               }
             ]} />
             <Text style={[
               styles.statusText,
               {
                 color:
-                  horarioStatus.isOpen ? '#34A853' :
-                    horarioStatus.emIntervalo ? '#FF9800' : '#F44336'
+                  horarioStatus.isOpen ? colors.botao :
+                    horarioStatus.emIntervalo ? colors.destaque : '#F44336'
               }
             ]}>
               {horarioStatus.text}
@@ -49,15 +49,16 @@ export const Detalhe = ({ item, colors, onClose }) => {
           </View>
         )}
 
-        {/* MENSAGEM DE INTERVALO — só aparece se tiver intervalo configurado */}
-        {temIntervalo && (
-          <Text style={[styles.intervaloInfo, { color: colors.suave }]}>
-            {horarioStatus.emIntervalo
-              ? `Voltamos às ${item.horarios.intervalo.retorno}`
-              : horarioStatus.isOpen
-                ? `Intervalo de ${item.horarios.intervalo.inicio} às ${item.horarios.intervalo.retorno}`
-                : null
-            }
+        {/* MENSAGEM DE INTERVALO — só aparece se tiver configuração de intervalo */}
+        {item.horarios?.intervalo && (
+          <Text style={[styles.intervaloInfo, { color: colors.primary }]}>
+            {item.horarios.intervalo.global === false ? (
+              'Não fechamos para almoço'
+            ) : horarioStatus.emIntervalo ? (
+              `Voltamos às ${item.horarios.intervalo.retorno}hs`
+            ) : horarioStatus.isOpen ? (
+              `Intervalo de ${item.horarios.intervalo.inicio}hs às ${item.horarios.intervalo.retorno}hs`
+            ) : null}
           </Text>
         )}
       </View>
@@ -73,7 +74,7 @@ export const Detalhe = ({ item, colors, onClose }) => {
         </View>
       )}
 
-      <Pressable onPress={handleWhatsApp} style={styles.whatsappButton}>
+      <Pressable onPress={handleWhatsApp} style={[styles.whatsappButton, {backgroundColor:colors.botao}]}>
         <Ionicons name="logo-whatsapp" size={28} color="#fff" />
         <Text style={styles.whatsappText}>WhatsApp</Text>
       </Pressable>
@@ -111,13 +112,13 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   statusText: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '500',
     textTransform: 'uppercase',
   },
   intervaloInfo: {
     marginTop: 6,
-    fontSize: 16,
+    fontSize: 14,
     textAlign: 'center',
     fontStyle: 'italic',
   },
@@ -143,7 +144,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 16,
-    backgroundColor: '#25D366',
     paddingVertical: 20,
     borderRadius: 22,
     marginTop: 'auto',

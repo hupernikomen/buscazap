@@ -27,11 +27,11 @@ export const Item = ({ item, index, results, onPress, colors, searchQuery }) => 
   const nomeCor =
     // Durante busca → destaca só quem tem busca: true
     (searchQuery?.trim() && isBusca)
-      ? colors.notification
+      ? colors.destaque
       // Sem busca → destaca só premium
       : (!searchQuery?.trim() && isPremium)
-        ? colors.notification
-        : colors.black;
+        ? colors.destaque
+        : colors.primary;
 
   // === STATUS DE HORÁRIO (agora entende português) ===
   const horarioStatus = getHorarioStatus(item.horarios);
@@ -86,6 +86,7 @@ export const Item = ({ item, index, results, onPress, colors, searchQuery }) => 
 const styles = StyleSheet.create({
   container: {
     paddingVertical: 12,
+    paddingHorizontal:22
   },
   content: {},
   nome: {
