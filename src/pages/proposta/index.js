@@ -13,7 +13,6 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useTheme } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../services/firebaseConnection/firebase';
 
@@ -33,7 +32,7 @@ export default function Proposta({ navigation }) {
 
   const handleSubmit = async () => {
     if (!form.nome.trim()) return Alert.alert('Erro', 'Nome é obrigatório');
-    if (!form.categoria.trim()) return Alert.alert('Erro', 'Categoria é obrigatória');
+    if (!form.tags.trim()) return Alert.alert('Erro', 'Informe pelo menos 1 palavra-chave');
     if (form.whatsapp.replace(/\D/g, '').length < 10) return Alert.alert('Erro', 'WhatsApp inválido');
 
     setLoading(true);
@@ -79,68 +78,90 @@ export default function Proposta({ navigation }) {
 
 
         <View style={styles.card}>
-          <Text style={styles.label}>Nome do estabelecimento *</Text>
-          <TextInput
-            style={[styles.input, { backgroundColor: colors.card, color: colors.text }]}
-            value={form.nome}
-            onChangeText={t => setForm({ ...form, nome: t })}
-            placeholder="Ex: Pizzaria do Zé"
-          />
 
-          <Text style={styles.label}>Categoria *</Text>
-          <TextInput
-            style={[styles.input, { backgroundColor: colors.card, color: colors.text }]}
-            value={form.categoria}
-            onChangeText={t => setForm({ ...form, categoria: t })}
-            placeholder="Ex: Restaurante, Farmácia"
-          />
+          <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>
 
-          <Text style={styles.label}>Descrição</Text>
-          <TextInput
-            style={[styles.inputMultiline, { backgroundColor: colors.card, color: colors.text }]}
-            value={form.descricao}
-            onChangeText={t => setForm({ ...form, descricao: t })}
-            placeholder="Fale sobre seu negócio..."
-            multiline
-          />
+            <Text style={styles.label}>Nome *</Text>
+            <TextInput
+              style={[styles.input, { color: colors.text }]}
+              value={form.nome}
+              onChangeText={t => setForm({ ...form, nome: t })}
+              placeholder="Ex: Pizzaria do Zé"
+              
+            />
+          </View>
+{/* 
+          <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>
 
-                      <View style={{ flex: 1 }}>
-              <Text style={styles.label}>Endereço</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: colors.card, color: colors.text }]}
-                value={form.complemento}
-                onChangeText={t => setForm({ ...form, complemento: t })}
-                placeholder="Rua, nº"
-              />
-            </View>
+            <Text style={styles.label}>Categoria *</Text>
+            <TextInput
+              style={[styles.input, { color: colors.text }]}
+              value={form.categoria}
+              onChangeText={t => setForm({ ...form, categoria: t })}
+              placeholder="Ex: Restaurante, Farmácia"
+            />
+          </View> */}
 
-            <View style={{ flex: 1 }}>
-              <Text style={styles.label}>Bairro</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: colors.card, color: colors.text }]}
-                value={form.bairro}
-                onChangeText={t => setForm({ ...form, bairro: t })}
-                placeholder="Centro"
-              />
+          <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>
+            <Text style={styles.label}>Descrição</Text>
+            <TextInput
+              style={[styles.inputMultiline, { color: colors.text }]}
+              value={form.descricao}
+              onChangeText={t => setForm({ ...form, descricao: t })}
+              placeholder="Fale sobre seu negócio..."
+              multiline
+            />
+          </View>
+
+          <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>
+
+            <Text style={styles.label}>Endereço</Text>
+            <TextInput
+              style={[styles.input, { color: colors.text }]}
+              value={form.complemento}
+              onChangeText={t => setForm({ ...form, complemento: t })}
+              placeholder="Rua, nº"
+            />
+          </View>
+
+          <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>
+            <Text style={styles.label}>Bairro</Text>
+            <TextInput
+              style={[styles.input, { color: colors.text }]}
+              value={form.bairro}
+              onChangeText={t => setForm({ ...form, bairro: t })}
+              placeholder="Centro"
+            />
 
           </View>
 
-          <Text style={styles.label}>WhatsApp (com DDD) *</Text>
-          <TextInput
-            style={[styles.input, { backgroundColor: colors.card, color: colors.text }]}
-            value={form.whatsapp}
-            onChangeText={t => setForm({ ...form, whatsapp: t })}
-            placeholder="(99) 99999-9999"
-            keyboardType="phone-pad"
-          />
+          <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>
 
-          <Text style={styles.label}>Palavras-chave (opcional)</Text>
-          <TextInput
-            style={[styles.input, { backgroundColor: colors.card, color: colors.text }]}
-            value={form.tags}
-            onChangeText={t => setForm({ ...form, tags: t })}
-            placeholder="pizza, delivery, aberto agora"
-          />
+            <Text style={styles.label}>WhatsApp (com DDD) *</Text>
+            <TextInput
+              style={[styles.input, { color: colors.text }]}
+              value={form.whatsapp}
+              onChangeText={t => setForm({ ...form, whatsapp: t })}
+              placeholder="(99) 99999-9999"
+              keyboardType="phone-pad"
+            />
+          </View>
+
+          <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>
+
+            <Text style={styles.label}>Palavras-chave (Separe por virgula) *</Text>
+            <TextInput
+              style={[styles.inputMultiline, { color: colors.text }]}
+              value={form.tags}
+              onChangeText={t => setForm({ ...form, tags: t })}
+              placeholder="pizza, delivery, entrega grátis"
+
+            />
+          </View>
+
+                    <Text style={[styles.footer, { color: colors.text + '70' }]}>
+            Analisaremos seu cadastro e entraremos em contato em até 24h.
+          </Text>
 
           <Pressable
             onPress={handleSubmit}
@@ -154,9 +175,7 @@ export default function Proposta({ navigation }) {
             )}
           </Pressable>
 
-          <Text style={[styles.footer, { color: colors.text + '70' }]}>
-            Analisaremos seu cadastro e entraremos em contato em até 24h.
-          </Text>
+
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -168,26 +187,24 @@ const styles = StyleSheet.create({
   card: {
     padding: 20,
     paddingBottom: 30,
+    gap: 12
 
   },
   label: {
-    fontSize: 15,
-    fontWeight: '400',
-    marginTop: 16,
-    marginLeft:16,
-    marginBottom:4
+    fontSize: 13,
+    marginTop: 10,
+    marginLeft: 16,
+    marginBottom: -6
   },
   input: {
     borderRadius: 16,
     paddingHorizontal: 18,
-    paddingVertical: 16,
-    fontSize: 16,
+    fontSize: 15,
   },
   inputMultiline: {
     borderRadius: 16,
     paddingHorizontal: 18,
-    paddingVertical: 16,
-    fontSize: 16,
+    fontSize: 15,
     textAlignVertical: 'top',
     height: 100,
   },
@@ -212,8 +229,8 @@ const styles = StyleSheet.create({
   },
   footer: {
     textAlign: 'center',
-    fontSize: 13,
     marginTop: 20,
+    paddingHorizontal:22,
     lineHeight: 18,
   },
 });
