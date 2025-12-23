@@ -3,11 +3,19 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getHorarioStatus } from '../utils/horarioUtils';
+import { normalize } from '../utils/normalize';
+
+// Lista de preposições e palavras irrelevantes para remover
+const PREPOSICOES = new Set([
+  'de', 'para', 'em', 'com', 'a', 'o', 'da', 'do', 'as', 'os',
+  'um', 'uma', 'e', 'ou', 'no', 'na', 'dos', 'das', 'ao', 'à',
+  'pelo', 'pela', 'nos', 'nas', 'por', 'até', 'sem', 'sob',
+  'sobre', 'entre', 'atrás', 'frente', 'dentro', 'fora'
+]);
 
 const NUMERO_ITENS_FIXOS_POR_CLIQUES = 3;
 
 export const Item = ({ item, index, results, onPress, colors, searchQuery }) => {
-  // PROTEÇÃO TOTAL CONTRA O ERRO "slice of undefined"
   const calcularDestaque = () => {
     if (item?.anuncio?.premium) return false;
     if (!Array.isArray(results)) return false;
@@ -23,18 +31,47 @@ export const Item = ({ item, index, results, onPress, colors, searchQuery }) => 
   const isPremium = item?.anuncio?.premium === true;
   const isBusca = item?.anuncio?.busca === true;
 
-  // === COR INTELIGENTE DO NOME (agora 100% correta) ===
   const nomeCor =
-    // Durante busca → destaca só quem tem busca: true
     (searchQuery?.trim() && isBusca)
       ? colors.destaque
-      // Sem busca → destaca só premium
       : (!searchQuery?.trim() && isPremium)
         ? colors.destaque
         : colors.primary;
 
-  // === STATUS DE HORÁRIO (agora entende português) ===
   const horarioStatus = getHorarioStatus(item.horarios);
+
+  // === TAGS RELEVANTES + PALAVRAS NÃO ENCONTRADAS (sem preposições) ===
+  const buscaInfo = React.useMemo(() => {
+    if (!searchQuery?.trim() || !Array.isArray(item.tags) || item.tags.length === 0) {
+      return null;
+    }
+
+    // Filtra preposições da busca
+    const palavrasBusca = normalize(searchQuery)
+      .split(/\s+/)
+      .filter(Boolean)
+      .filter(palavra => !PREPOSICOES.has(palavra.toLowerCase()));
+
+    if (palavrasBusca.length === 0) return null;
+
+    const tagsNormalizadas = item.tags.map(tag => normalize(tag.trim()));
+
+    const encontradas = [];
+    const naoEncontradas = [];
+
+    palavrasBusca.forEach(palavra => {
+      const encontrou = tagsNormalizadas.some(tag => tag.includes(palavra));
+      if (encontrou) {
+        encontradas.push(palavra);
+      } else {
+        naoEncontradas.push(palavra);
+      }
+    });
+
+    if (encontradas.length === 0 && naoEncontradas.length === 0) return null;
+
+    return { encontradas, naoEncontradas };
+  }, [item.tags, searchQuery]);
 
   return (
     <TouchableOpacity
@@ -43,12 +80,10 @@ export const Item = ({ item, index, results, onPress, colors, searchQuery }) => 
       style={styles.container}
     >
       <View style={styles.content}>
-        {/* Nome da loja */}
         <Text style={[styles.nome, { color: nomeCor }]} numberOfLines={1}>
           {item.nome}
         </Text>
 
-        {/* Descrição */}
         {item.descricao ? (
           <Text style={[styles.descricao, { color: colors.text + 'B3' }]} numberOfLines={3}>
             {item.descricao}
@@ -62,17 +97,31 @@ export const Item = ({ item, index, results, onPress, colors, searchQuery }) => 
                 {item.categoria} - {item.endereco?.bairro}
               </Text>
             )}
+
+            {/* Tags relevantes + palavras não encontradas (sem preposições) */}
+            {buscaInfo && (
+              <View style={styles.buscaInfoContainer}>
+                {buscaInfo.encontradas.length > 0 && (
+                  <Text style={styles.buscaEncontrada}>
+                    {buscaInfo.encontradas.join(' · ')}
+                  </Text>
+                )}
+                {buscaInfo.naoEncontradas.length > 0 && (
+                  <Text style={styles.buscaNaoEncontrada}>
+                    {buscaInfo.naoEncontradas.join(' · ')}
+                  </Text>
+                )}
+              </View>
+            )}
           </View>
 
           <View style={styles.right}>
-            {/* Anúncio pago — aparece se for premium OU busca (durante busca) */}
             {(isPremium || (isBusca && searchQuery?.trim())) && (
               <Text style={[styles.sponsored, { color: colors.text + '70' }]}>
                 ・ Anúncio pago
               </Text>
             )}
 
-            {/* Ícone de destaque (opcional) */}
             {calcularDestaque() && (
               <Ionicons name="trending-up" size={16} color={colors.primary} />
             )}
@@ -86,7 +135,7 @@ export const Item = ({ item, index, results, onPress, colors, searchQuery }) => 
 const styles = StyleSheet.create({
   container: {
     paddingVertical: 12,
-    paddingHorizontal:22
+    paddingHorizontal: 22,
   },
   content: {},
   nome: {
@@ -101,14 +150,32 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 8,
+    alignItems: 'flex-start',
+    marginTop: 4,
   },
   left: { flex: 1 },
   categoria: {
     fontSize: 10,
     textTransform: 'uppercase',
     letterSpacing: 0.35,
+  },
+  buscaInfoContainer: {
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems:'center',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  buscaEncontrada: {
+    fontSize: 12,
+    color:'#000',
+    fontWeight:300
+  },
+  buscaNaoEncontrada: {
+    fontWeight:300,
+    color:'#000',
+    fontSize: 12,
+    textDecorationLine: 'line-through',
   },
   right: {
     flexDirection: 'row',

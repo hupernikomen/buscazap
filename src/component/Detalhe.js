@@ -1,14 +1,12 @@
 // src/component/StoreBottomSheet.js
-import React from 'react';
 import { Text, Pressable, Linking, View, StyleSheet } from 'react-native';
 import { BottomSheetView } from '@gorhom/bottom-sheet';
 import { getHorarioStatus } from '../utils/horarioUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { incrementClicks } from '../services/firebaseConnection/firestoreService';
 
-export const Detalhe = ({ item, colors, onClose }) => {
+export const Detalhe = ({ item, colors }) => {
   const horarioStatus = getHorarioStatus(item.horarios);
-  const temIntervalo = item.horarios?.intervalo?.global === true;
 
   const handleWhatsApp = async () => {
     if (!item.premium) await incrementClicks(item.id);
@@ -18,11 +16,11 @@ export const Detalhe = ({ item, colors, onClose }) => {
   return (
     <BottomSheetView style={styles.container}>
       <View style={styles.header}>
-        <Text style={[styles.storenome, { color: colors.text }]}>{item.nome}</Text>
+        <Text style={[styles.storenome, { color: colors.text }]}>{item?.nome}</Text>
 
-        {item.descricao && (
+        {item?.descricao && (
           <Text style={[styles.descricao, { color: colors.text + 'CC' }]}>
-            {item.descricao}
+            {item?.descricao}
           </Text>
         )}
 
@@ -55,9 +53,9 @@ export const Detalhe = ({ item, colors, onClose }) => {
             {item.horarios.intervalo.global === false ? (
               'Não fechamos para almoço'
             ) : horarioStatus.emIntervalo ? (
-              `Voltamos às ${item.horarios.intervalo.retorno}hs`
+              `Voltamos às ${item.horarios.intervalo.retorno} hs`
             ) : horarioStatus.isOpen ? (
-              `Intervalo de ${item.horarios.intervalo.inicio}hs às ${item.horarios.intervalo.retorno}hs`
+              `Intervalo de ${item.horarios.intervalo.inicio} hs às ${item.horarios.intervalo.retorno} hs`
             ) : null}
           </Text>
         )}
