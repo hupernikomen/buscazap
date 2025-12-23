@@ -321,7 +321,7 @@ export default function Home({ navigation }) {
                     if (btn.navigate) navigation.navigate(btn.navigate);
                     else if (btn.link) Linking.openURL(btn.link).catch(() => { });
                   }}
-                  style={[styles.menuButton, { backgroundColor: '#f0f0f0' }]}
+                  style={[styles.menuButton, { backgroundColor: '#f8f8f8' }]}
                 >
                   <Text style={[styles.menuText, { color: colors.text }]}>{btn.titulo}</Text>
                 </Pressable>
