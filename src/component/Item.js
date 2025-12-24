@@ -13,7 +13,6 @@ const PREPOSICOES = new Set([
   'sobre', 'entre', 'atrás', 'frente', 'dentro', 'fora'
 ]);
 
-const NUMERO_ITENS_FIXOS_POR_CLIQUES = 3;
 
 export const Item = ({ item, index, results, onPress, colors, searchQuery }) => {
 const ITENS_FIXOS_POR_CLIQUES = 3;

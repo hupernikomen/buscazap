@@ -1,206 +1,84 @@
-// src/pages/home/HomeScreen.js
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
-  TextInput,
   FlatList,
-  Pressable,
-  ActivityIndicator,
-  RefreshControl,
   StyleSheet,
-  Image,
+  RefreshControl,
+  BackHandler,
   Text,
-  Linking,
-  ScrollView,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@react-navigation/native';
 import { BottomSheetModal, BottomSheetModalProvider } from '@gorhom/bottom-sheet';
-import { BackHandler } from 'react-native';
-import {
-  MobileAds,
-  BannerAd,
-  BannerAdSize,
-  TestIds,
-} from 'react-native-google-mobile-ads';
+import { MobileAds } from 'react-native-google-mobile-ads';
 
-import { subscribeToStores } from '../../services/firebaseConnection/firestoreService';
-import { normalize } from '../../utils/normalize';
-import { processarPropostasConfirmadas } from '../../utils/permissaoProposta';
 import { carregarMenuEmTempoReal } from '../../utils/menuRolagem';
-import { ordemInicial } from '../../utils/ordemInicial';
 import { Item } from '../../component/Item';
 import { Detalhe } from '../../component/Detalhe';
 
+// Componentes locais
+import LogoHeader from './components/LogoHeader';
+import SearchBar from './components/SearchBar';
+import HorizontalMenu from './components/HorizontalMenu';
+import AdBanner from './components/AdBanner';
+import NoResults from './components/NoResults';
+
+// Hook personalizado
+import useStores from './hooks/useStores';
+
 MobileAds().initialize();
-const ID_ANUNCIO = __DEV__ ? TestIds.BANNER : 'ca-app-pub-9531253714806304/5581486318';
-const ITENS_FIXOS_POR_CLIQUES = 3;
+
+const INTERVALO_ANUNCIO = 7;
 
 export default function Home({ navigation }) {
   const [termoBusca, setTermoBusca] = useState('');
-  const [resultados, setResultados] = useState([]);
-  const [carregando, setCarregando] = useState(true);
-  const [atualizando, setAtualizando] = useState(false);
-  const [itemSelecionado, setItemSelecionado] = useState(null);
   const [itensMenu, setItensMenu] = useState([]);
   const [buscaExecutada, setBuscaExecutada] = useState(false);
   const [anunciosCarregados, setAnunciosCarregados] = useState(new Set());
   const [showSearchShadow, setShowSearchShadow] = useState(false);
+  const [itemSelecionado, setItemSelecionado] = useState(null);
 
   const { colors } = useTheme();
   const modalRef = useRef(null);
-  const inputRef = useRef(null);
-  const pontosModal = useMemo(() => ['87%'], []);
 
+  // Hook que gerencia todos os dados das lojas
+  const {
+    resultados,
+    carregando,
+    atualizando,
+    executarBusca: executarBuscaHook,
+    limparBusca: limparBuscaHook,
+    recarregar,
+  } = useStores();
+
+  // Carrega menu horizontal
   useEffect(() => {
     const cancelar = carregarMenuEmTempoReal(setItensMenu);
     return () => cancelar();
   }, []);
 
-  // Mantém o foco no input ao digitar (evita teclado fechar ao esconder lista)
-  useEffect(() => {
-    if (termoBusca.trim() && !buscaExecutada && inputRef.current) {
-      const timer = setTimeout(() => {
-        inputRef.current?.focus();
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [termoBusca, buscaExecutada]);
-
-  const carregarDados = useCallback(async (termo = '', executarBusca = false, atualizar = false) => {
-    if (atualizar) setAtualizando(true);
-    else setCarregando(true);
-
+  const onAdLoaded = (key) => {
     if (!__DEV__) {
-      setAnunciosCarregados(new Set());
+      setAnunciosCarregados(prev => new Set(prev).add(key));
     }
-
-    await processarPropostasConfirmadas();
-
-    const termoParaUsar = executarBusca ? termo.trim() : '';
-
-    const cancelar = subscribeToStores(termoParaUsar, (snapshot) => {
-      let dados = snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(item => item?.anuncio?.postagem === true);
-
-      let resultadosFinais = [];
-
-      if (termoParaUsar) {
-        const palavrasBusca = normalize(termoParaUsar).split(/\s+/).filter(Boolean);
-        const termoCompleto = normalize(termoParaUsar);
-        const temMaisDeUmaPalavra = palavrasBusca.length > 1;
-
-        const contarAcertosNasTags = (item) => {
-          if (!Array.isArray(item.tags) || item.tags.length === 0) return 0;
-          const tagsTexto = normalize(item.tags.join(' '));
-          return palavrasBusca.filter(p => tagsTexto.includes(p)).length;
-        };
-
-        const temBuscaExata = (item) => {
-          if (!Array.isArray(item.tags)) return false;
-          const tagsTexto = normalize(item.tags.join(' '));
-          return tagsTexto.includes(termoCompleto);
-        };
-
-        const temRelevancia = (item) => contarAcertosNasTags(item) > 0;
-
-        const itensComScore = dados.map(item => {
-          const acertos = contarAcertosNasTags(item);
-          let score = 0;
-          let prioridade = 0;
-
-          if (temBuscaExata(item)) {
-            if (item?.anuncio?.busca) {
-              prioridade = 7;
-              score = 99999999 + acertos * 1000000;
-            } else {
-              prioridade = 6;
-              score = 9999999 + acertos * 100000;
-            }
-          } else if (item?.anuncio?.busca && temRelevancia(item)) {
-            const minimoExigido = temMaisDeUmaPalavra ? 2 : 1;
-            if (acertos >= minimoExigido) {
-              prioridade = 5;
-              score = 999999 + acertos * 10000;
-            } else {
-              prioridade = 1;
-              score = acertos * 10;
-            }
-          } else if (temRelevancia(item)) {
-            prioridade = 4;
-            score = acertos * 1000;
-          } else if (item?.anuncio?.premium && temRelevancia(item)) {
-            prioridade = 3;
-            score = acertos * 100;
-          } else if (temRelevancia(item)) {
-            prioridade = 2;
-            score = acertos * 1;
-          } else {
-            return null;
-          }
-
-          return { item, score, prioridade };
-        }).filter(Boolean);
-
-        itensComScore.sort((a, b) => {
-          if (b.prioridade !== a.prioridade) return b.prioridade - a.prioridade;
-          return b.score - a.score;
-        });
-
-        resultadosFinais = itensComScore.map(x => x.item);
-      } else {
-        resultadosFinais = ordemInicial(dados, ITENS_FIXOS_POR_CLIQUES);
-      }
-
-      setResultados(resultadosFinais);
-      setCarregando(false);
-      if (atualizar) setAtualizando(false);
-    });
-
-    return cancelar;
-  }, []);
-
-  useEffect(() => {
-    let cancelar = () => {};
-    const iniciar = async () => {
-      setCarregando(true);
-      await processarPropostasConfirmadas();
-      cancelar = carregarDados('', false);
-    };
-    iniciar();
-    return () => typeof cancelar === 'function' && cancelar();
-  }, [carregarDados]);
+  };
 
   const executarBusca = () => {
     if (termoBusca.trim()) {
       setBuscaExecutada(true);
-      setResultados([]);
-      setCarregando(true);
-      carregarDados(termoBusca, true);
+      executarBuscaHook(termoBusca);
     }
   };
 
   const limparBusca = () => {
     setTermoBusca('');
     setBuscaExecutada(false);
-    inputRef.current?.blur();
-    setResultados([]);
-    carregarDados('', false);
+    limparBuscaHook();
   };
 
   const handleChangeText = (texto) => {
     setTermoBusca(texto);
     if (buscaExecutada) {
       setBuscaExecutada(false);
-    }
-    // Força o foco ao digitar
-    inputRef.current?.focus();
-  };
-
-  const onAnuncioCarregado = (key) => {
-    if (!__DEV__) {
-      setAnunciosCarregados(prev => new Set(prev).add(key));
     }
   };
 
@@ -210,34 +88,23 @@ export default function Home({ navigation }) {
   };
 
   const listaCompleta = useMemo(() => {
-    const logo = { type: 'logo' };
-    const busca = { type: 'search' };
-    const menu = itensMenu.length > 0 ? { type: 'menu_horizontal', itens: itensMenu } : null;
+    const cabecalho = [
+      { type: 'logo' },
+      { type: 'search' },
+      itensMenu.length > 0 ? { type: 'menu_horizontal' } : null,
+    ].filter(Boolean);
 
-    const cabecalho = [logo, busca];
-    if (menu) cabecalho.push(menu);
-
-    if (termoBusca.trim() && !buscaExecutada) {
-      return cabecalho;
-    }
-
-    if (carregando && buscaExecutada) {
-      return cabecalho;
-    }
-
+    if (termoBusca.trim() && !buscaExecutada) return cabecalho;
+    if (carregando && buscaExecutada) return cabecalho;
     if (buscaExecutada && resultados.length === 0 && !carregando) {
-      return [
-        ...cabecalho,
-        { type: 'no_results', query: termoBusca.trim() }
-      ];
+      return [...cabecalho, { type: 'no_results', query: termoBusca.trim() }];
     }
-
     if (resultados.length === 0) return cabecalho;
 
     const itensComAnuncios = [];
-    const INTERVALO_ANUNCIO = 7;
     let contadorItensDepoisDoPrimeiroAnuncio = 0;
     let primeiroAnuncioInserido = false;
+    const ITENS_FIXOS_POR_CLIQUES = 3; // pode ser movido para constante global depois
 
     resultados.forEach((item, indice) => {
       if (!primeiroAnuncioInserido && indice === ITENS_FIXOS_POR_CLIQUES) {
@@ -269,139 +136,47 @@ export default function Home({ navigation }) {
     return [...cabecalho, ...itensComAnuncios];
   }, [resultados, itensMenu, termoBusca, buscaExecutada, carregando, anunciosCarregados]);
 
-  const renderizarAnuncio = (key) => {
-    return (
-      <View style={[styles.adContainer, { borderBottomWidth: 0.5, borderBottomColor: colors.border, paddingBottom: 18 }]}>
-        <Text style={{ marginBottom: 6, fontSize: 12 }}>PUBLICIDADE</Text>
-        <BannerAd
-          unitId={ID_ANUNCIO}
-          size={BannerAdSize.LARGE_BANNER}
-          requestOptions={{ requestNonPersonalizedAdsOnly: true }}
-          onAdLoaded={() => onAnuncioCarregado(key)}
-          onAdFailedToLoad={() => {}}
-        />
-      </View>
-    );
-  };
-
   const renderizarItem = ({ item }) => {
-    if (item.type === 'logo') {
-      return (
-        <View style={{ alignItems: 'center', paddingTop: 20 }}>
-          <Image
-            source={{ uri: 'https://firebasestorage.googleapis.com/v0/b/appguiacomercial-e6109.appspot.com/o/buscazapthe2.png?alt=media&token=8d55bbb0-be1c-487f-b7f3-c65b1bbdc9aa' }}
-            style={{ width: 160, height: 70 }}
-            resizeMode="contain"
+    switch (item.type) {
+      case 'logo':
+        return <LogoHeader />;
+      case 'search':
+        return (
+          <SearchBar
+            termoBusca={termoBusca}
+            setTermoBusca={setTermoBusca}
+            buscaExecutada={buscaExecutada}
+            carregando={carregando}
+            showSearchShadow={showSearchShadow}
+            colors={colors}
+            onExecutarBusca={executarBusca}
+            onLimparBusca={limparBusca}
+            onChangeText={handleChangeText}
           />
-        </View>
-      );
+        );
+      case 'menu_horizontal':
+        return <HorizontalMenu itensMenu={itensMenu} colors={colors} navigation={navigation} />;
+      case 'ad':
+        return <AdBanner adKey={item.key} onAdLoaded={onAdLoaded} />;
+      case 'no_results':
+        return <NoResults colors={colors} query={item.query} />;
+      case 'store':
+        return (
+          <Item
+            item={item.item}
+            index={item.index}
+            results={resultados}
+            searchQuery={termoBusca}
+            onPress={(loja) => {
+              setItemSelecionado(loja);
+              modalRef.current?.present();
+            }}
+            colors={colors}
+          />
+        );
+      default:
+        return null;
     }
-
-    if (item.type === 'search') {
-      const mostrarLupa = !buscaExecutada;
-      const iconeNome = mostrarLupa ? 'search' : 'close';
-
-      return (
-        <View style={[
-          styles.searchContainer,
-          { backgroundColor: colors.background, paddingHorizontal: 22 },
-          showSearchShadow && styles.searchContainerShadow
-        ]}>
-          <View style={[styles.searchBar, { backgroundColor: colors.card, borderWidth: 0 }]}>
-            <Pressable style={{ flex: 1 }} onPress={() => inputRef.current?.focus()}>
-              <TextInput
-                ref={inputRef}
-                style={[styles.input, { color: colors.text }]}
-                placeholder="O que você procura?"
-                placeholderTextColor={colors.text + '80'}
-                value={termoBusca}
-                onChangeText={handleChangeText}
-                clearButtonMode="never"
-                returnKeyType="search"
-                onSubmitEditing={executarBusca}
-                blurOnSubmit={false}
-              />
-            </Pressable>
-            <Pressable
-              style={[styles.searchButton, { elevation: termoBusca ? 5 : 0 }]}
-              onPress={mostrarLupa ? executarBusca : limparBusca}
-            >
-              {carregando && buscaExecutada ? (
-                <ActivityIndicator color={colors.primary} />
-              ) : (
-                <Ionicons name={iconeNome} size={24} color={colors.text} />
-              )}
-            </Pressable>
-          </View>
-        </View>
-      );
-    }
-
-    if (item.type === 'menu_horizontal') {
-      if (!item.itens || item.itens.length === 0) return null;
-
-      const botaoFixo = {
-        titulo: 'Anuncie Grátis',
-        navigate: 'Proposta',
-      };
-
-      return (
-        <View style={styles.menuWrapper}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 8, padding: 22, gap: 8 }}>
-            <Pressable
-              onPress={() => navigation.navigate(botaoFixo.navigate)}
-              style={[styles.menuButton, { backgroundColor: colors.botao }]}
-            >
-              <Text style={[styles.menuText, { color: '#fff', fontWeight: 500 }]}>{botaoFixo.titulo}</Text>
-            </Pressable>
-
-            {item.itens
-              .filter(btn => btn.status === true)
-              .map((btn, i) => (
-                <Pressable
-                  key={i}
-                  onPress={() => {
-                    if (btn.navigate) navigation.navigate(btn.navigate);
-                    else if (btn.link) Linking.openURL(btn.link).catch(() => {});
-                  }}
-                  style={[styles.menuButton, { backgroundColor: '#f8f8f8' }]}
-                >
-                  <Text style={[styles.menuText, { color: colors.text }]}>{btn.titulo}</Text>
-                </Pressable>
-              ))}
-          </ScrollView>
-        </View>
-      );
-    }
-
-    if (item.type === 'ad') {
-      return renderizarAnuncio(item.key);
-    }
-
-    if (item.type === 'no_results') {
-      return (
-        <View style={styles.noResultsContainer}>
-          <Ionicons name="search-outline" size={40} color={colors.text + '60'} />
-          <Text style={[styles.noResultsText, { color: colors.text }]}>
-            Nenhum resultado encontrado
-          </Text>
-        </View>
-      );
-    }
-
-    return (
-      <Item
-        item={item.item}
-        index={item.index}
-        results={resultados}
-        searchQuery={termoBusca}
-        onPress={(loja) => {
-          setItemSelecionado(loja);
-          modalRef.current?.present();
-        }}
-        colors={colors}
-      />
-    );
   };
 
   const fecharModal = () => setItemSelecionado(null);
@@ -433,7 +208,7 @@ export default function Home({ navigation }) {
           showsVerticalScrollIndicator={false}
           onScroll={handleScroll}
           scrollEventThrottle={16}
-          removeClippedSubviews={false} // Ajuda a manter foco no input
+          removeClippedSubviews={false}
           ItemSeparatorComponent={({ leadingItem }) => {
             if (!leadingItem || ['logo', 'search', 'menu_horizontal', 'ad', 'no_results'].includes(leadingItem.type)) return null;
             return <View style={{ borderBottomWidth: 0.5, borderBottomColor: colors.border }} />;
@@ -444,20 +219,22 @@ export default function Home({ navigation }) {
               <Text style={{ textAlign: 'center', color: colors.text + '70', fontSize: 12 }}>@2025</Text>
             </View>
           }
-          refreshControl={<RefreshControl refreshing={atualizando} onRefresh={() => carregarDados('', false, true)} tintColor={colors.primary} />}
+          refreshControl={
+            <RefreshControl refreshing={atualizando} onRefresh={recarregar} tintColor={colors.primary} />
+          }
         />
       </View>
 
       <BottomSheetModal
         ref={modalRef}
         index={1}
-        snapPoints={pontosModal}
+        snapPoints={['85%']}
         onCloseEnd={fecharModal}
         onDismiss={fecharModal}
         enablePanDownToClose={true}
         backgroundStyle={{ backgroundColor: colors.background }}
         backdropComponent={({ style, ...props }) => (
-          <Pressable onPress={() => modalRef.current?.close()} {...props} style={[style, { backgroundColor: '#000000', opacity: 0.5 }]} />
+          <View {...props} style={[style, { backgroundColor: '#000000', opacity: 0.5 }]} pointerEvents="auto" />
         )}
       >
         {itemSelecionado && <Detalhe item={itemSelecionado} colors={colors} onClose={fecharModal} />}
@@ -468,37 +245,4 @@ export default function Home({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  searchContainer: { paddingBottom: 22, paddingTop: 12 },
-  searchContainerShadow: {
-    elevation: 20,
-    borderBottomLeftRadius: 35,
-    borderBottomRightRadius: 35,
-  },
-  searchBar: { borderRadius: 35, height: 55, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 22 },
-  input: { flex: 1, fontSize: 16, height: 55 },
-  searchButton: { width: 50, height: 50, margin: 2, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', borderRadius: 30 },
-  menuButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 22,
-    marginVertical: 12,
-  },
-  adContainer: { marginVertical: 16, alignItems: 'center', justifyContent: 'center' },
-
-  noResultsContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-    paddingVertical: 100,
-  },
-  noResultsText: {
-    fontSize: 18,
-    fontWeight: '500',
-    marginTop: 24,
-    textAlign: 'center',
-  },
 });

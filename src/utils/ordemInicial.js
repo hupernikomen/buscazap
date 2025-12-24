@@ -1,8 +1,6 @@
 // src/utils/ordemInicial.js
 
-const ITENS_FIXOS_POR_CLICKS = 3; // Pode deixar fixo aqui ou passar como parâmetro se preferir
-
-export const ordemInicial = (dados) => {
+export const ordemInicial = (dados, ITENS_FIXOS_POR_CLICKS) => {
   if (!Array.isArray(dados) || dados.length === 0) return dados;
 
   // 1. Separa premium dos normais
