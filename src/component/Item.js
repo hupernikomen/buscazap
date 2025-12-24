@@ -16,17 +16,23 @@ const PREPOSICOES = new Set([
 const NUMERO_ITENS_FIXOS_POR_CLIQUES = 3;
 
 export const Item = ({ item, index, results, onPress, colors, searchQuery }) => {
-  const calcularDestaque = () => {
-    if (item?.anuncio?.premium) return false;
-    if (!Array.isArray(results)) return false;
+const ITENS_FIXOS_POR_CLIQUES = 3;
 
-    const premiumBefore = results
-      .slice(0, index)
-      .filter(i => i && i?.anuncio?.premium === true).length;
+const calcularDestaque = () => {
+  // Não mostra ícone para premium
+  if (item?.anuncio?.premium) return false;
 
-    const posicao = index - premiumBefore;
-    return posicao < NUMERO_ITENS_FIXOS_POR_CLIQUES;
-  };
+  if (!Array.isArray(results)) return false;
+
+  // Conta quantos itens normais com cliques estão antes dele
+  const itensAntes = results.slice(0, index);
+  const podiumAntes = itensAntes.filter(
+    i => !i?.anuncio?.premium && (i.clicks || 0) > 0
+  ).length;
+
+  // Só mostra o ícone se estiver entre os top 3 por cliques
+  return (item.clicks || 0) > 0 && podiumAntes < ITENS_FIXOS_POR_CLIQUES;
+};
 
   const isPremium = item?.anuncio?.premium === true;
   const isBusca = item?.anuncio?.busca === true;
@@ -80,10 +86,16 @@ export const Item = ({ item, index, results, onPress, colors, searchQuery }) => 
       style={styles.container}
     >
       <View style={styles.content}>
-        <Text style={[styles.nome, { color: nomeCor }]} numberOfLines={1}>
-          {item.nome}
-        </Text>
+        <View style={{flexDirection:'row',alignItems:'baseline', gap:6}}>
 
+          <Text style={[styles.nome, { color: nomeCor }]} numberOfLines={1}>
+            {item.nome}
+          </Text>
+          {calcularDestaque() && (
+            <Ionicons name="podium-outline" size={14} color={colors.text} />
+          )}
+
+        </View>
         {item.descricao ? (
           <Text style={[styles.descricao, { color: colors.text + 'B3' }]} numberOfLines={3}>
             {item.descricao}
@@ -122,9 +134,7 @@ export const Item = ({ item, index, results, onPress, colors, searchQuery }) => 
               </Text>
             )}
 
-            {calcularDestaque() && (
-              <Ionicons name="trending-up" size={16} color={colors.primary} />
-            )}
+
           </View>
         </View>
       </View>
@@ -134,7 +144,7 @@ export const Item = ({ item, index, results, onPress, colors, searchQuery }) => 
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 16,
+    paddingVertical: 14,
     paddingHorizontal: 22,
   },
   content: {},
@@ -144,13 +154,12 @@ const styles = StyleSheet.create({
   },
   descricao: {
     fontSize: 15,
-    marginTop:-2
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginTop: 10,
+    marginTop: 12,
   },
   left: { flex: 1 },
   categoria: {
@@ -161,18 +170,18 @@ const styles = StyleSheet.create({
   buscaInfoContainer: {
     marginTop: 12,
     flexDirection: 'row',
-    alignItems:'center',
+    alignItems: 'center',
     flexWrap: 'wrap',
     gap: 8,
   },
   buscaEncontrada: {
     fontSize: 12,
-    color:'#000',
-    fontWeight:300
+    color: '#000',
+    fontWeight: 300
   },
   buscaNaoEncontrada: {
-    fontWeight:300,
-    color:'#000',
+    fontWeight: 300,
+    color: '#000',
     fontSize: 12,
     textDecorationLine: 'line-through',
   },

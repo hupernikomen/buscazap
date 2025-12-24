@@ -43,7 +43,9 @@ export default function Home({ navigation }) {
   const [atualizando, setAtualizando] = useState(false);
   const [itemSelecionado, setItemSelecionado] = useState(null);
   const [itensMenu, setItensMenu] = useState([]);
-  const [buscaExecutada, setBuscaExecutada] = useState(false); // Novo estado
+  const [buscaExecutada, setBuscaExecutada] = useState(false);
+  const [anunciosCarregados, setAnunciosCarregados] = useState(new Set());
+  const [showSearchShadow, setShowSearchShadow] = useState(false);
 
   const { colors } = useTheme();
   const modalRef = useRef(null);
@@ -51,15 +53,27 @@ export default function Home({ navigation }) {
   const pontosModal = useMemo(() => ['87%'], []);
 
   useEffect(() => {
-    // Inicia o listener do menu
     const cancelar = carregarMenuEmTempoReal(setItensMenu);
     return () => cancelar();
   }, []);
 
-  // Função para carregar dados (agora controlada manualmente)
+  // Mantém o foco no input ao digitar (evita teclado fechar ao esconder lista)
+  useEffect(() => {
+    if (termoBusca.trim() && !buscaExecutada && inputRef.current) {
+      const timer = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [termoBusca, buscaExecutada]);
+
   const carregarDados = useCallback(async (termo = '', executarBusca = false, atualizar = false) => {
     if (atualizar) setAtualizando(true);
     else setCarregando(true);
+
+    if (!__DEV__) {
+      setAnunciosCarregados(new Set());
+    }
 
     await processarPropostasConfirmadas();
 
@@ -73,7 +87,6 @@ export default function Home({ navigation }) {
       let resultadosFinais = [];
 
       if (termoParaUsar) {
-        // BUSCA INTELIGENTE (mesmo código original)
         const palavrasBusca = normalize(termoParaUsar).split(/\s+/).filter(Boolean);
         const termoCompleto = normalize(termoParaUsar);
         const temMaisDeUmaPalavra = palavrasBusca.length > 1;
@@ -137,19 +150,17 @@ export default function Home({ navigation }) {
 
         resultadosFinais = itensComScore.map(x => x.item);
       } else {
-        // Lista normal sem busca
         resultadosFinais = ordemInicial(dados, ITENS_FIXOS_POR_CLIQUES);
       }
 
       setResultados(resultadosFinais);
+      setCarregando(false);
       if (atualizar) setAtualizando(false);
-      else setCarregando(false);
     });
 
     return cancelar;
   }, []);
 
-  // Carrega lista completa ao iniciar o app
   useEffect(() => {
     let cancelar = () => {};
     const iniciar = async () => {
@@ -161,10 +172,11 @@ export default function Home({ navigation }) {
     return () => typeof cancelar === 'function' && cancelar();
   }, [carregarDados]);
 
-  // Funções de busca
   const executarBusca = () => {
     if (termoBusca.trim()) {
       setBuscaExecutada(true);
+      setResultados([]);
+      setCarregando(true);
       carregarDados(termoBusca, true);
     }
   };
@@ -173,10 +185,30 @@ export default function Home({ navigation }) {
     setTermoBusca('');
     setBuscaExecutada(false);
     inputRef.current?.blur();
+    setResultados([]);
     carregarDados('', false);
   };
 
-  // === LISTA COMPLETA ===
+  const handleChangeText = (texto) => {
+    setTermoBusca(texto);
+    if (buscaExecutada) {
+      setBuscaExecutada(false);
+    }
+    // Força o foco ao digitar
+    inputRef.current?.focus();
+  };
+
+  const onAnuncioCarregado = (key) => {
+    if (!__DEV__) {
+      setAnunciosCarregados(prev => new Set(prev).add(key));
+    }
+  };
+
+  const handleScroll = (event) => {
+    const scrollY = event.nativeEvent.contentOffset.y;
+    setShowSearchShadow(scrollY > 100);
+  };
+
   const listaCompleta = useMemo(() => {
     const logo = { type: 'logo' };
     const busca = { type: 'search' };
@@ -185,9 +217,19 @@ export default function Home({ navigation }) {
     const cabecalho = [logo, busca];
     if (menu) cabecalho.push(menu);
 
-    // Se está digitando mas ainda não executou a busca → esconde a lista
     if (termoBusca.trim() && !buscaExecutada) {
       return cabecalho;
+    }
+
+    if (carregando && buscaExecutada) {
+      return cabecalho;
+    }
+
+    if (buscaExecutada && resultados.length === 0 && !carregando) {
+      return [
+        ...cabecalho,
+        { type: 'no_results', query: termoBusca.trim() }
+      ];
     }
 
     if (resultados.length === 0) return cabecalho;
@@ -199,14 +241,20 @@ export default function Home({ navigation }) {
 
     resultados.forEach((item, indice) => {
       if (!primeiroAnuncioInserido && indice === ITENS_FIXOS_POR_CLIQUES) {
-        itensComAnuncios.push({ type: 'ad', key: 'ad-primeiro' });
+        const keyPrimeiro = 'ad-primeiro';
+        if (__DEV__ || anunciosCarregados.has(keyPrimeiro)) {
+          itensComAnuncios.push({ type: 'ad', key: keyPrimeiro });
+        }
         primeiroAnuncioInserido = true;
       }
 
       if (primeiroAnuncioInserido) {
         contadorItensDepoisDoPrimeiroAnuncio++;
         if (contadorItensDepoisDoPrimeiroAnuncio % INTERVALO_ANUNCIO === 0 && indice < resultados.length - 1) {
-          itensComAnuncios.push({ type: 'ad', key: `ad-${indice}` });
+          const keyAd = `ad-${indice}`;
+          if (__DEV__ || anunciosCarregados.has(keyAd)) {
+            itensComAnuncios.push({ type: 'ad', key: keyAd });
+          }
         }
       }
 
@@ -219,10 +267,24 @@ export default function Home({ navigation }) {
     });
 
     return [...cabecalho, ...itensComAnuncios];
-  }, [resultados, itensMenu, termoBusca, buscaExecutada]);
+  }, [resultados, itensMenu, termoBusca, buscaExecutada, carregando, anunciosCarregados]);
 
-  // === RENDERIZAÇÃO ===
-  const renderizarItem = ({ item, index }) => {
+  const renderizarAnuncio = (key) => {
+    return (
+      <View style={[styles.adContainer, { borderBottomWidth: 0.5, borderBottomColor: colors.border, paddingBottom: 18 }]}>
+        <Text style={{ marginBottom: 6, fontSize: 12 }}>PUBLICIDADE</Text>
+        <BannerAd
+          unitId={ID_ANUNCIO}
+          size={BannerAdSize.LARGE_BANNER}
+          requestOptions={{ requestNonPersonalizedAdsOnly: true }}
+          onAdLoaded={() => onAnuncioCarregado(key)}
+          onAdFailedToLoad={() => {}}
+        />
+      </View>
+    );
+  };
+
+  const renderizarItem = ({ item }) => {
     if (item.type === 'logo') {
       return (
         <View style={{ alignItems: 'center', paddingTop: 20 }}>
@@ -236,29 +298,35 @@ export default function Home({ navigation }) {
     }
 
     if (item.type === 'search') {
-      const mostrarLupa = !buscaExecutada || !termoBusca.trim();
+      const mostrarLupa = !buscaExecutada;
       const iconeNome = mostrarLupa ? 'search' : 'close';
 
       return (
-        <View style={[styles.searchContainer, { backgroundColor: colors.background, paddingHorizontal: 22 }]}>
-          <View style={[styles.searchBar, { backgroundColor: colors.background, elevation: 6, borderWidth: 0 }]}>
+        <View style={[
+          styles.searchContainer,
+          { backgroundColor: colors.background, paddingHorizontal: 22 },
+          showSearchShadow && styles.searchContainerShadow
+        ]}>
+          <View style={[styles.searchBar, { backgroundColor: colors.card, borderWidth: 0 }]}>
             <Pressable style={{ flex: 1 }} onPress={() => inputRef.current?.focus()}>
               <TextInput
                 ref={inputRef}
                 style={[styles.input, { color: colors.text }]}
                 placeholder="O que você procura?"
+                placeholderTextColor={colors.text + '80'}
                 value={termoBusca}
-                onChangeText={setTermoBusca}
+                onChangeText={handleChangeText}
                 clearButtonMode="never"
                 returnKeyType="search"
                 onSubmitEditing={executarBusca}
+                blurOnSubmit={false}
               />
             </Pressable>
             <Pressable
-              style={styles.searchButton}
+              style={[styles.searchButton, { elevation: termoBusca ? 5 : 0 }]}
               onPress={mostrarLupa ? executarBusca : limparBusca}
             >
-              {carregando ? (
+              {carregando && buscaExecutada ? (
                 <ActivityIndicator color={colors.primary} />
               ) : (
                 <Ionicons name={iconeNome} size={24} color={colors.text} />
@@ -274,7 +342,6 @@ export default function Home({ navigation }) {
 
       const botaoFixo = {
         titulo: 'Anuncie Grátis',
-        icone: 'megaphone-outline',
         navigate: 'Proposta',
       };
 
@@ -308,10 +375,16 @@ export default function Home({ navigation }) {
     }
 
     if (item.type === 'ad') {
+      return renderizarAnuncio(item.key);
+    }
+
+    if (item.type === 'no_results') {
       return (
-        <View style={[styles.adContainer, { borderBottomWidth: 0.5, borderBottomColor: colors.border, paddingBottom: 18 }]}>
-          <Text style={{ marginBottom: 6, fontSize: 12 }}>PUBLICIDADE</Text>
-          <BannerAd unitId={ID_ANUNCIO} size={BannerAdSize.LARGE_BANNER} requestOptions={{ requestNonPersonalizedAdsOnly: true }} />
+        <View style={styles.noResultsContainer}>
+          <Ionicons name="search-outline" size={40} color={colors.text + '60'} />
+          <Text style={[styles.noResultsText, { color: colors.text }]}>
+            Nenhum resultado encontrado
+          </Text>
         </View>
       );
     }
@@ -348,17 +421,21 @@ export default function Home({ navigation }) {
         <FlatList
           data={listaCompleta}
           renderItem={renderizarItem}
-          keyExtractor={(item, index) => {
+          keyExtractor={(item) => {
             if (item.type === 'logo') return 'logo';
             if (item.type === 'search') return 'search';
             if (item.type === 'menu_horizontal') return 'menu';
-            if (item.type === 'ad') return item.key || `ad-${index}`;
+            if (item.type === 'ad') return item.key;
+            if (item.type === 'no_results') return 'no_results';
             return `store-${item.storeId}`;
           }}
           stickyHeaderIndices={[1]}
           showsVerticalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          removeClippedSubviews={false} // Ajuda a manter foco no input
           ItemSeparatorComponent={({ leadingItem }) => {
-            if (!leadingItem || ['logo', 'search', 'menu_horizontal', 'ad'].includes(leadingItem.type)) return null;
+            if (!leadingItem || ['logo', 'search', 'menu_horizontal', 'ad', 'no_results'].includes(leadingItem.type)) return null;
             return <View style={{ borderBottomWidth: 0.5, borderBottomColor: colors.border }} />;
           }}
           ListFooterComponent={
@@ -391,10 +468,15 @@ export default function Home({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  searchContainer: { paddingBottom: 16, paddingTop: 12 },
-  searchBar: { borderRadius: 35, height: 55, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 22 },
+  searchContainer: { paddingBottom: 22, paddingTop: 12 },
+  searchContainerShadow: {
+    elevation: 20,
+    borderBottomLeftRadius: 35,
+    borderBottomRightRadius: 35,
+  },
+  searchBar: { borderRadius: 35, height: 55, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 22 },
   input: { flex: 1, fontSize: 16, height: 55 },
-  searchButton: { width: 50, height: 50, alignItems: 'center', justifyContent: 'center', marginRight: -16 },
+  searchButton: { width: 50, height: 50, margin: 2, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', borderRadius: 30 },
   menuButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -402,7 +484,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 22,
-    marginBottom: 12,
+    marginVertical: 12,
   },
   adContainer: { marginVertical: 16, alignItems: 'center', justifyContent: 'center' },
+
+  noResultsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+    paddingVertical: 100,
+  },
+  noResultsText: {
+    fontSize: 18,
+    fontWeight: '500',
+    marginTop: 24,
+    textAlign: 'center',
+  },
 });
