@@ -1,26 +1,43 @@
+// src/utils/ordemInicial.js
 
+const ITENS_FIXOS_POR_CLICKS = 3; // Pode deixar fixo aqui ou passar como parâmetro se preferir
 
-// === ORDENAÇÃO NORMAL (sem busca) ===
-  export const ordemInicial = (lista, ITENS_FIXOS_POR_CLIQUES) => {
-    const premium = lista.filter(i => i?.anuncio?.premium);
-    const outros = lista.filter(i => !i?.anuncio?.premium);
+export const ordemInicial = (dados) => {
+  if (!Array.isArray(dados) || dados.length === 0) return dados;
 
-    const premiumOrdenado = premium.sort((a, b) => (b.clicks || 0) - (a.clicks || 0));
-    const outrosOrdenado = outros.sort((a, b) => (b.clicks || 0) - (a.clicks || 0));
+  // 1. Separa premium dos normais
+  const premium = dados.filter(item => item?.anuncio?.premium === true);
+  const normais = dados.filter(item => !item?.anuncio?.premium);
 
-    const quantidadeFixa = Math.min(ITENS_FIXOS_POR_CLIQUES, outrosOrdenado.length);
-    const topoFixoBruto = outrosOrdenado.slice(0, quantidadeFixa);
-    const topoFixo = topoFixoBruto
-      .map(i => ({ i, r: Math.random() }))
-      .sort((a, b) => a.r - b.r)
-      .map(({ i }) => i);
+  // 2. Premium no topo, ordenados por clicks
+  const premiumOrdenado = [...premium].sort((a, b) => (b.clicks || 0) - (a.clicks || 0));
 
-    const restantes = outrosOrdenado.slice(quantidadeFixa);
-    const embaralhados = [...restantes];
-    for (let i = embaralhados.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [embaralhados[i], embaralhados[j]] = [embaralhados[j], embaralhados[i]];
-    }
+  // 3. Normais com clicks > 0
+  const normaisComClicks = normais.filter(item => (item.clicks || 0) > 0);
+  const normaisSemClicks = normais.filter(item => (item.clicks || 0) === 0);
 
-    return [...premiumOrdenado, ...topoFixo, ...embaralhados];
-  };
+  let podium = []; // Apenas os top 3 com mais clicks
+  let restantes = []; // Todos os outros normais (inclui com poucos clicks)
+
+  if (normaisComClicks.length > 0) {
+    // Ordena por clicks decrescente
+    normaisComClicks.sort((a, b) => (b.clicks || 0) - (a.clicks || 0));
+
+    // Pega apenas os 3 primeiros (ou menos, se não tiver 3)
+    podium = normaisComClicks.slice(0, ITENS_FIXOS_POR_CLICKS);
+
+    // O resto dos com clicks vai para os restantes (serão embaralhados)
+    restantes = normaisComClicks.slice(ITENS_FIXOS_POR_CLICKS);
+  }
+
+  // 4. Embaralha todos os restantes (com clicks baixos + sem clicks)
+  const todosRestantes = [...restantes, ...normaisSemClicks];
+  const embaralhados = [...todosRestantes];
+  for (let i = embaralhados.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [embaralhados[i], embaralhados[j]] = [embaralhados[j], embaralhados[i]];
+  }
+
+  // 5. Lista final: premium → top 3 por clicks → resto embaralhado
+  return [...premiumOrdenado, ...podium, ...embaralhados];
+};
