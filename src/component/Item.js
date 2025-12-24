@@ -134,24 +134,23 @@ export const Item = ({ item, index, results, onPress, colors, searchQuery }) => 
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 12,
+    paddingVertical: 16,
     paddingHorizontal: 22,
   },
   content: {},
   nome: {
     fontSize: 18,
     fontWeight: '600',
-    lineHeight: 28,
   },
   descricao: {
     fontSize: 15,
-    opacity: 0.88,
+    marginTop:-2
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginTop: 4,
+    marginTop: 10,
   },
   left: { flex: 1 },
   categoria: {

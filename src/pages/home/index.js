@@ -24,7 +24,6 @@ import {
   TestIds,
 } from 'react-native-google-mobile-ads';
 
-
 import { subscribeToStores } from '../../services/firebaseConnection/firestoreService';
 import { normalize } from '../../utils/normalize';
 import { processarPropostasConfirmadas } from '../../utils/permissaoProposta';
@@ -44,6 +43,7 @@ export default function Home({ navigation }) {
   const [atualizando, setAtualizando] = useState(false);
   const [itemSelecionado, setItemSelecionado] = useState(null);
   const [itensMenu, setItensMenu] = useState([]);
+  const [buscaExecutada, setBuscaExecutada] = useState(false); // Novo estado
 
   const { colors } = useTheme();
   const modalRef = useRef(null);
@@ -53,63 +53,29 @@ export default function Home({ navigation }) {
   useEffect(() => {
     // Inicia o listener do menu
     const cancelar = carregarMenuEmTempoReal(setItensMenu);
-
-    // Cancela quando sair da tela
     return () => cancelar();
   }, []);
 
-
-
-  // === CARREGA DADOS COM BUSCA INTELIGENTE (MELHOR DO BRASIL) ===
-
-  // ORDEM DE PRIORIDADE (do mais importante para o menos importante):
-  //
-  // 1º LUGAR: TAG EXATA
-  //    - Se alguma tag contiver o termo completo da busca (ex: busca "tênis nike" e tag "tênis nike")
-  //    - Sempre aparece no topo, independente de busca=true ou premium
-  //
-  // 2º LUGAR: busca=true + relevância suficiente
-  //    - Só entra se tiver busca=true
-  //    - Se a busca tiver 1 palavra → precisa de pelo menos 1 acerto nas tags
-  //    - Se a busca tiver 2+ palavras → precisa de pelo menos 2 acertos nas tags
-  //    - Quanto mais acertos → mais acima dentro desse grupo
-  //
-  // 3º LUGAR: Maior número de acertos nas tags (sem restrição de busca=true)
-  //    - Qualquer loja com mais palavras da busca nas tags aparece aqui
-  //    - Quanto mais acertos → mais acima
-  //
-  // 4º LUGAR: Premium com relevância
-  //    - Só entra se tiver premium=true E pelo menos 1 acerto nas tags
-  //
-  // 5º LUGAR: Qualquer loja com pelo menos 1 acerto nas tags
-  //    - Última posição, mas ainda aparece (para não deixar o usuário sem resultado)
-  //    - Garante que toda loja com alguma relevância seja mostrada
-  //
-  // REGRAS GERAIS:
-  // - Só olha nas TAGS (descrição e categoria ignoradas)
-  // - Sem relevância nas tags → NÃO aparece na busca
-  // - Busca exata tem prioridade máxima absoluta
-  // - Tudo justo, inteligente e profissional — nível Google!
-
-
-  const carregarDados = useCallback(async (atualizar = false) => {
+  // Função para carregar dados (agora controlada manualmente)
+  const carregarDados = useCallback(async (termo = '', executarBusca = false, atualizar = false) => {
     if (atualizar) setAtualizando(true);
     else setCarregando(true);
 
     await processarPropostasConfirmadas();
 
-    const cancelar = subscribeToStores(termoBusca, (snapshot) => {
-      // Filtra apenas lojas ativas
+    const termoParaUsar = executarBusca ? termo.trim() : '';
+
+    const cancelar = subscribeToStores(termoParaUsar, (snapshot) => {
       let dados = snapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
         .filter(item => item?.anuncio?.postagem === true);
 
       let resultadosFinais = [];
 
-      // === BUSCA INTELIGENTE — VERSÃO FINAL E PERFEITA ===
-      if (termoBusca.trim()) {
-        const palavrasBusca = normalize(termoBusca).split(/\s+/).filter(Boolean);
-        const termoCompleto = normalize(termoBusca);
+      if (termoParaUsar) {
+        // BUSCA INTELIGENTE (mesmo código original)
+        const palavrasBusca = normalize(termoParaUsar).split(/\s+/).filter(Boolean);
+        const termoCompleto = normalize(termoParaUsar);
         const temMaisDeUmaPalavra = palavrasBusca.length > 1;
 
         const contarAcertosNasTags = (item) => {
@@ -126,57 +92,43 @@ export default function Home({ navigation }) {
 
         const temRelevancia = (item) => contarAcertosNasTags(item) > 0;
 
-        const itensComScore = dados
-          .map(item => {
-            const acertos = contarAcertosNasTags(item);
-            let score = 0;
-            let prioridade = 0;
+        const itensComScore = dados.map(item => {
+          const acertos = contarAcertosNasTags(item);
+          let score = 0;
+          let prioridade = 0;
 
-            // 1º LUGAR: BUSCA EXATA
-            if (temBuscaExata(item)) {
-              // Subprioridade: busca=true vem antes
-              if (item?.anuncio?.busca) {
-                prioridade = 7; // busca=true + exata → topo absoluto
-                score = 99999999 + acertos * 1000000;
-              } else {
-                prioridade = 6; // exata sem busca=true
-                score = 9999999 + acertos * 100000;
-              }
+          if (temBuscaExata(item)) {
+            if (item?.anuncio?.busca) {
+              prioridade = 7;
+              score = 99999999 + acertos * 1000000;
+            } else {
+              prioridade = 6;
+              score = 9999999 + acertos * 100000;
             }
-            // 2º LUGAR: busca=true + relevância suficiente
-            else if (item?.anuncio?.busca && temRelevancia(item)) {
-              const minimoExigido = temMaisDeUmaPalavra ? 2 : 1;
-              if (acertos >= minimoExigido) {
-                prioridade = 5;
-                score = 999999 + acertos * 10000;
-              } else {
-                prioridade = 1;
-                score = acertos * 10;
-              }
+          } else if (item?.anuncio?.busca && temRelevancia(item)) {
+            const minimoExigido = temMaisDeUmaPalavra ? 2 : 1;
+            if (acertos >= minimoExigido) {
+              prioridade = 5;
+              score = 999999 + acertos * 10000;
+            } else {
+              prioridade = 1;
+              score = acertos * 10;
             }
-            // 3º LUGAR: maior número de acertos
-            else if (temRelevancia(item)) {
-              prioridade = 4;
-              score = acertos * 1000;
-            }
-            // 4º LUGAR: premium com relevância
-            else if (item?.anuncio?.premium && temRelevancia(item)) {
-              prioridade = 3;
-              score = acertos * 100;
-            }
-            // 5º LUGAR: qualquer com pelo menos 1 acerto
-            else if (temRelevancia(item)) {
-              prioridade = 2;
-              score = acertos * 1;
-            }
-            // Sem relevância → não aparece
-            else {
-              return null;
-            }
+          } else if (temRelevancia(item)) {
+            prioridade = 4;
+            score = acertos * 1000;
+          } else if (item?.anuncio?.premium && temRelevancia(item)) {
+            prioridade = 3;
+            score = acertos * 100;
+          } else if (temRelevancia(item)) {
+            prioridade = 2;
+            score = acertos * 1;
+          } else {
+            return null;
+          }
 
-            return { item, score, prioridade };
-          })
-          .filter(Boolean);
+          return { item, score, prioridade };
+        }).filter(Boolean);
 
         itensComScore.sort((a, b) => {
           if (b.prioridade !== a.prioridade) return b.prioridade - a.prioridade;
@@ -184,9 +136,8 @@ export default function Home({ navigation }) {
         });
 
         resultadosFinais = itensComScore.map(x => x.item);
-
       } else {
-        // Sem busca → ordenação normal
+        // Lista normal sem busca
         resultadosFinais = ordemInicial(dados, ITENS_FIXOS_POR_CLIQUES);
       }
 
@@ -196,22 +147,34 @@ export default function Home({ navigation }) {
     });
 
     return cancelar;
-  }, [termoBusca]);
+  }, []);
 
+  // Carrega lista completa ao iniciar o app
   useEffect(() => {
-    let cancelar = () => { };
+    let cancelar = () => {};
     const iniciar = async () => {
       setCarregando(true);
       await processarPropostasConfirmadas();
-      cancelar = carregarDados();
+      cancelar = carregarDados('', false);
     };
     iniciar();
     return () => typeof cancelar === 'function' && cancelar();
   }, [carregarDados]);
 
+  // Funções de busca
+  const executarBusca = () => {
+    if (termoBusca.trim()) {
+      setBuscaExecutada(true);
+      carregarDados(termoBusca, true);
+    }
+  };
 
-
-
+  const limparBusca = () => {
+    setTermoBusca('');
+    setBuscaExecutada(false);
+    inputRef.current?.blur();
+    carregarDados('', false);
+  };
 
   // === LISTA COMPLETA ===
   const listaCompleta = useMemo(() => {
@@ -220,36 +183,43 @@ export default function Home({ navigation }) {
     const menu = itensMenu.length > 0 ? { type: 'menu_horizontal', itens: itensMenu } : null;
 
     const cabecalho = [logo, busca];
-
     if (menu) cabecalho.push(menu);
+
+    // Se está digitando mas ainda não executou a busca → esconde a lista
+    if (termoBusca.trim() && !buscaExecutada) {
+      return cabecalho;
+    }
 
     if (resultados.length === 0) return cabecalho;
 
     const itensComAnuncios = [];
-    const quantidadePremium = resultados.filter(i => i?.anuncio?.premium).length;
-    let posicaoPrimeiroAnuncio = quantidadePremium > 1 ? quantidadePremium : quantidadePremium + ITENS_FIXOS_POR_CLIQUES;
-    let contadorAnuncios = 0;
-    let contadorItensDepoisAnuncio = 0;
+    const INTERVALO_ANUNCIO = 7;
+    let contadorItensDepoisDoPrimeiroAnuncio = 0;
+    let primeiroAnuncioInserido = false;
 
     resultados.forEach((item, indice) => {
-      if (indice === posicaoPrimeiroAnuncio && contadorAnuncios === 0) {
-        itensComAnuncios.push({ type: 'ad' });
-        contadorAnuncios++;
-        contadorItensDepoisAnuncio = 0;
+      if (!primeiroAnuncioInserido && indice === ITENS_FIXOS_POR_CLIQUES) {
+        itensComAnuncios.push({ type: 'ad', key: 'ad-primeiro' });
+        primeiroAnuncioInserido = true;
       }
-      itensComAnuncios.push({ type: 'store', item, storeId: item.id, index: indice });
 
-      if (contadorAnuncios > 0) {
-        contadorItensDepoisAnuncio++;
-        if (contadorItensDepoisAnuncio % 15 === 0 && indice < resultados.length - 1) {
-          itensComAnuncios.push({ type: 'ad' });
-          contadorAnuncios++;
+      if (primeiroAnuncioInserido) {
+        contadorItensDepoisDoPrimeiroAnuncio++;
+        if (contadorItensDepoisDoPrimeiroAnuncio % INTERVALO_ANUNCIO === 0 && indice < resultados.length - 1) {
+          itensComAnuncios.push({ type: 'ad', key: `ad-${indice}` });
         }
       }
+
+      itensComAnuncios.push({
+        type: 'store',
+        item,
+        storeId: item.id,
+        index: indice,
+      });
     });
 
     return [...cabecalho, ...itensComAnuncios];
-  }, [resultados, itensMenu]);
+  }, [resultados, itensMenu, termoBusca, buscaExecutada]);
 
   // === RENDERIZAÇÃO ===
   const renderizarItem = ({ item, index }) => {
@@ -266,6 +236,9 @@ export default function Home({ navigation }) {
     }
 
     if (item.type === 'search') {
+      const mostrarLupa = !buscaExecutada || !termoBusca.trim();
+      const iconeNome = mostrarLupa ? 'search' : 'close';
+
       return (
         <View style={[styles.searchContainer, { backgroundColor: colors.background, paddingHorizontal: 22 }]}>
           <View style={[styles.searchBar, { backgroundColor: colors.background, elevation: 6, borderWidth: 0 }]}>
@@ -276,12 +249,20 @@ export default function Home({ navigation }) {
                 placeholder="O que você procura?"
                 value={termoBusca}
                 onChangeText={setTermoBusca}
-                clearButtonMode="while-editing"
+                clearButtonMode="never"
                 returnKeyType="search"
+                onSubmitEditing={executarBusca}
               />
             </Pressable>
-            <Pressable style={styles.searchButton}>
-              {carregando ? <ActivityIndicator color={colors.primary} /> : <Ionicons name="search" size={24} color={colors.text} />}
+            <Pressable
+              style={styles.searchButton}
+              onPress={mostrarLupa ? executarBusca : limparBusca}
+            >
+              {carregando ? (
+                <ActivityIndicator color={colors.primary} />
+              ) : (
+                <Ionicons name={iconeNome} size={24} color={colors.text} />
+              )}
             </Pressable>
           </View>
         </View>
@@ -300,18 +281,13 @@ export default function Home({ navigation }) {
       return (
         <View style={styles.menuWrapper}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 8, padding: 22, gap: 8 }}>
-            {/* BOTÃO FIXO */}
             <Pressable
               onPress={() => navigation.navigate(botaoFixo.navigate)}
-              style={[styles.menuButton, {
-                backgroundColor: colors.botao
-              }]}
+              style={[styles.menuButton, { backgroundColor: colors.botao }]}
             >
               <Text style={[styles.menuText, { color: '#fff', fontWeight: 500 }]}>{botaoFixo.titulo}</Text>
             </Pressable>
 
-
-            {/* BOTÕES DO FIREBASE (só com status: true) */}
             {item.itens
               .filter(btn => btn.status === true)
               .map((btn, i) => (
@@ -319,7 +295,7 @@ export default function Home({ navigation }) {
                   key={i}
                   onPress={() => {
                     if (btn.navigate) navigation.navigate(btn.navigate);
-                    else if (btn.link) Linking.openURL(btn.link).catch(() => { });
+                    else if (btn.link) Linking.openURL(btn.link).catch(() => {});
                   }}
                   style={[styles.menuButton, { backgroundColor: '#f8f8f8' }]}
                 >
@@ -372,11 +348,11 @@ export default function Home({ navigation }) {
         <FlatList
           data={listaCompleta}
           renderItem={renderizarItem}
-          keyExtractor={(item) => {
+          keyExtractor={(item, index) => {
             if (item.type === 'logo') return 'logo';
             if (item.type === 'search') return 'search';
             if (item.type === 'menu_horizontal') return 'menu';
-            if (item.type === 'ad') return `ad-${Math.random()}`;
+            if (item.type === 'ad') return item.key || `ad-${index}`;
             return `store-${item.storeId}`;
           }}
           stickyHeaderIndices={[1]}
@@ -391,7 +367,7 @@ export default function Home({ navigation }) {
               <Text style={{ textAlign: 'center', color: colors.text + '70', fontSize: 12 }}>@2025</Text>
             </View>
           }
-          refreshControl={<RefreshControl refreshing={atualizando} onRefresh={() => carregarDados(true)} tintColor={colors.primary} />}
+          refreshControl={<RefreshControl refreshing={atualizando} onRefresh={() => carregarDados('', false, true)} tintColor={colors.primary} />}
         />
       </View>
 
@@ -427,7 +403,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 22,
     marginBottom: 12,
-
   },
-  adContainer: { marginVertical: 16, alignItems: 'center', justifyContent: 'center', },
+  adContainer: { marginVertical: 16, alignItems: 'center', justifyContent: 'center' },
 });
