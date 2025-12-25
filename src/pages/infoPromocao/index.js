@@ -21,14 +21,14 @@ export default function InfoPromocao({ navigation }) {
 
       {/* Exemplo visual do anúncio promovido */}
       <View style={styles.exampleSection}>
-        <Image source={{ uri: EXEMPLO_ANUNCIO }} style={styles.exampleImage} resizeMode="contain" />
+        <Image source={{ uri: EXEMPLO_ANUNCIO }} style={styles.exampleImage} resizeMode="cover" />
         <Text style={styles.exampleLabel}>Assim ficará seu anúncio destacado</Text>
       </View>
 
       {/* Introdução */}
       <View style={styles.intro}>
         <Text style={styles.introText}>
-          Escolha o plano ideal para o seu objetivo e comece a atrair mais clientes hoje mesmo.
+          Escolha o destaque ideal para o seu objetivo e comece a atrair mais clientes hoje mesmo.
         </Text>
       </View>
 
@@ -40,8 +40,8 @@ export default function InfoPromocao({ navigation }) {
           <Text style={styles.planPrice}>R$ 9,90/mês</Text>
 
           <Text style={styles.planInfo}>
-            Fica fixado no topo da tela inicial{'\n'}
-            (máximo 3 anúncios)
+            Anúncio fixado no topo da tela inicial{'\n'}
+            (máximo 3 anúncios no App)
           </Text>
 
           <View style={styles.planFeatures}>
@@ -54,7 +54,7 @@ export default function InfoPromocao({ navigation }) {
             style={styles.planButton}
             onPress={() => navigation.navigate('Proposta', { plano: 'fixo' })}
           >
-            <Text style={styles.buttonText}>Escolher este plano</Text>
+            <Text style={styles.buttonText}>Quero este</Text>
           </Pressable>
         </View>
 
@@ -62,15 +62,15 @@ export default function InfoPromocao({ navigation }) {
         <View style={[styles.planCard, { borderColor: '#2196F3' }]}>
           <Ionicons name="search" size={40} color="#2196F3" />
           <Text style={styles.planName}>Anúncio de Busca</Text>
-          <Text style={styles.planPrice}>R$ 6,90/mês</Text>
+          <Text style={styles.planPrice}>R$ 4,90/mês</Text>
 
           <Text style={styles.planInfo}>
-            Aparece no topo dos resultados{'\n'}
-            quando alguém busca suas palavras-chave
+            Destaque no topo dos resultados{'\n'}
+            de buscas. Aqui sugerimos melhorar suas palavras-chave.
           </Text>
 
           <View style={styles.planFeatures}>
-            <Text style={styles.feature}>• Atrai clientes interessados</Text>
+            <Text style={styles.feature}>• Atrai clientes expecificos</Text>
             <Text style={styles.feature}>• Alta chance de conversão</Text>
             <Text style={styles.feature}>• Resultados imediatos</Text>
           </View>
@@ -79,7 +79,7 @@ export default function InfoPromocao({ navigation }) {
             style={styles.planButton}
             onPress={() => navigation.navigate('Proposta', { plano: 'busca' })}
           >
-            <Text style={styles.buttonText}>Escolher este plano</Text>
+            <Text style={styles.buttonText}>Quero este</Text>
           </Pressable>
         </View>
       </View>
@@ -87,7 +87,7 @@ export default function InfoPromocao({ navigation }) {
       {/* Rodapé simples e direto */}
       <View style={styles.footer}>
         <Text style={styles.footerText}>
-          Pagamento mensal • Cancele quando quiser • Suporte por WhatsApp
+          Não há vínculo contratual • Solicite o tempo desejado, e no final seu anúncio é retirado do ar • Suporte por WhatsApp
         </Text>
         <Text style={styles.footerBold}>
           Comece agora e veja sua loja no topo!
@@ -103,26 +103,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    paddingTop: 40,
-    paddingHorizontal: 30,
-    alignItems: 'center',
-  },
-  mainTitle: {
-    fontSize: 32,
-    fontWeight: '800',
-    textAlign: 'center',
-    lineHeight: 40,
-  },
-  mainSubtitle: {
-    fontSize: 18,
-    marginTop: 12,
-    textAlign: 'center',
-    color: '#666',
-  },
+
   exampleSection: {
     alignItems: 'center',
-    marginTop: 40,
+    marginTop: 16,
     paddingHorizontal: 20,
   },
   exampleLabel: {
@@ -132,11 +116,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   exampleImage: {
-    width: '100%',
-    height: 150,
-    padding:16,
-    borderRadius: 20,
-    backgroundColor: '#f0f0f0',
+width: '100%',
+      height: undefined,        // importante
+      aspectRatio: 703 / 238,   // mantém a proporção original (≈ 2.9538)
+      resizeMode: 'contain',    // mostra a imagem inteira (pode deixar barras pretas/brancas)
+      elevation:15
   },
   intro: {
     paddingHorizontal: 30,
