@@ -11,7 +11,7 @@ export default function HorizontalMenu({ itensMenu, colors, navigation }) {
   };
 
   return (
-    <View style={{ paddingVertical: 8 }}>
+    <View style={{ paddingVertical: 22 }}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 22, gap: 8 }}>
         <Pressable
           onPress={() => navigation.navigate(botaoFixo.navigate)}

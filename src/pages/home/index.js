@@ -16,11 +16,11 @@ import { Item } from '../../component/Item';
 import { Detalhe } from '../../component/Detalhe';
 
 // Componentes locais
-import LogoHeader from './components/LogoHeader';
-import SearchBar from './components/SearchBar';
-import HorizontalMenu from './components/HorizontalMenu';
-import AdBanner from './components/AdBanner';
-import NoResults from './components/NoResults';
+import LogoHeader from '../../component/LogoHeader';
+import SearchBar from '../../component/SearchBar';
+import HorizontalMenu from '../../component/HorizontalMenu';
+import AdBanner from '../../component/AdBanner';
+import NoResults from '../../component/NoResults';
 
 // Hook personalizado
 import useStores from './hooks/useStores';

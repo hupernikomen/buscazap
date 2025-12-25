@@ -85,13 +85,13 @@ const calcularDestaque = () => {
       style={styles.container}
     >
       <View style={styles.content}>
-        <View style={{flexDirection:'row',alignItems:'baseline', gap:6}}>
+        <View style={{flexDirection:'row',alignItems:'center', gap:10}}>
 
           <Text style={[styles.nome, { color: nomeCor }]} numberOfLines={1}>
             {item.nome}
           </Text>
           {calcularDestaque() && (
-            <Ionicons name="podium-outline" size={14} color={colors.text} />
+            <Ionicons name="podium-outline" size={12} color={colors.text} />
           )}
 
         </View>

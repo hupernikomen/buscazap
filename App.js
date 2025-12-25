@@ -5,6 +5,7 @@ import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import Home from './src/pages/home';
 import Proposta from './src/pages/proposta';
+import InfoPromocao from './src/pages/infoPromocao';
 
 
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -48,6 +49,7 @@ export default function App() {
         >
           <Stack.Screen name="Home" component={Home} options={{ headerShown: false }} />
           <Stack.Screen name="Proposta" component={Proposta} options={{ headerShadowVisible:false, title:'Solicitar Anúncio' }} />
+          <Stack.Screen name="InfoPromocao" component={InfoPromocao}  options={{ headerShadowVisible:false, title:'Promover seu anúncio' }} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaView>

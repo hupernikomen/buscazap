@@ -13,6 +13,14 @@ export const Detalhe = ({ item, colors }) => {
     Linking.openURL(`https://wa.me/${item?.whatsapp?.principal.replace(/\D/g, '')}`);
   };
 
+  // Determina qual ícone e cor usar
+  const lockIconName = horarioStatus.isOpen ? 'lock-open-outline' : 'lock-closed-outline';
+  const statusColor = horarioStatus.isOpen
+    ? colors.botao
+    : horarioStatus.emIntervalo
+    ? colors.destaque
+    : '#F44336';
+
   return (
     <BottomSheetView style={styles.container}>
       <View style={styles.header}>
@@ -26,22 +34,8 @@ export const Detalhe = ({ item, colors }) => {
 
         {horarioStatus && (
           <View style={styles.statusBadge}>
-            <View style={[
-              styles.statusDot,
-              {
-                backgroundColor:
-                  horarioStatus.isOpen ? colors.botao :
-                    horarioStatus.emIntervalo ? colors.destaque : '#F44336'
-              }
-            ]} />
-            <Text style={[
-              styles.statusText,
-              {
-                color:
-                  horarioStatus.isOpen ? colors.botao :
-                    horarioStatus.emIntervalo ? colors.destaque : '#F44336'
-              }
-            ]}>
+            <Ionicons name={lockIconName} size={18} color={statusColor} />
+            <Text style={[styles.statusText, { color: statusColor }]}>
               {horarioStatus.text}
             </Text>
           </View>
@@ -61,8 +55,6 @@ export const Detalhe = ({ item, colors }) => {
         )}
       </View>
 
-
-
       {item.endereco?.complemento && (
         <View style={styles.addressContainer}>
           <Ionicons name="location-outline" size={19} color={colors.primary || '#1A73E8'} />
@@ -72,7 +64,7 @@ export const Detalhe = ({ item, colors }) => {
         </View>
       )}
 
-      <Pressable onPress={handleWhatsApp} style={[styles.whatsappButton, {backgroundColor:colors.botao}]}>
+      <Pressable onPress={handleWhatsApp} style={[styles.whatsappButton, { backgroundColor: colors.botao }]}>
         <Ionicons name="logo-whatsapp" size={28} color="#fff" />
         <Text style={styles.whatsappText}>WhatsApp</Text>
       </Pressable>
@@ -103,11 +95,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 12,
     gap: 9,
-  },
-  statusDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 6,
   },
   statusText: {
     fontSize: 14,
