@@ -13,18 +13,24 @@ export const DetalheDoItem = ({ item, colors }) => {
     Linking.openURL(`https://wa.me/${item?.whatsapp?.principal.replace(/\D/g, '')}`);
   };
 
-  // Determina qual ícone e cor usar
-  const lockIconName = horarioStatus.isOpen ? 'lock-open-outline' : 'lock-closed-outline';
-  const statusColor = horarioStatus.isOpen
-    ? colors.botao
-    : horarioStatus.emIntervalo
-    ? colors.destaque
-    : '#F44336';
+  const isOpen = horarioStatus.isOpen;
+  const isLunchBreak = horarioStatus.emIntervalo;
+
+  // Cor apenas no ícone do cadeado
+  const lockColor = isOpen ? colors.botao : isLunchBreak ? colors.destaque : '#F44336';
+
+  const fazEntrega = item.fazEntrega === true;
+  const temDomingo = item.horarios?.domingo &&
+    item.horarios.domingo.abre &&
+    item.horarios.domingo.fecha;
+
+  const temIntervalo = item.horarios?.intervalo?.global === true;
 
   return (
     <BottomSheetView style={styles.container}>
       <View style={styles.header}>
-        <Text style={[styles.storenome, { color: colors.text }]}>{item?.nome}</Text>
+        {/* Nome centralizado */}
+        <Text style={[styles.storenome, { color: colors.text, textAlign: 'center' }]}>{item?.nome}</Text>
 
         {item?.descricao && (
           <Text style={[styles.descricao, { color: colors.text + 'CC' }]}>
@@ -32,38 +38,68 @@ export const DetalheDoItem = ({ item, colors }) => {
           </Text>
         )}
 
-        {horarioStatus && (
-          <View style={styles.statusBadge}>
-            <Ionicons name={lockIconName} size={18} color={statusColor} />
-            <Text style={[styles.statusText, { color: statusColor }]}>
-              {horarioStatus.text}
-            </Text>
+        {/* Bloco de informações centralizadas */}
+        <View style={styles.infoBlock}>
+          {/* Status aberto/fechado */}
+          <View style={styles.infoRow}>
+            <Ionicons name={isOpen ? 'lock-open-outline' : 'lock-closed-outline'} size={18} color={lockColor} />
+            <Text style={styles.infoText}>{horarioStatus.text}</Text>
           </View>
-        )}
 
-        {/* MENSAGEM DE INTERVALO — só aparece se tiver configuração de intervalo */}
-        {item.horarios?.intervalo && (
-          <Text style={[styles.intervaloInfo, { color: colors.primary }]}>
-            {item.horarios.intervalo.global === false ? (
-              'Não fechamos para almoço'
-            ) : horarioStatus.emIntervalo ? (
-              `Voltamos às ${item.horarios.intervalo.retorno} hs`
-            ) : horarioStatus.isOpen ? (
-              `Intervalo de ${item.horarios.intervalo.inicio} hs às ${item.horarios.intervalo.retorno} hs`
-            ) : null}
-          </Text>
-        )}
+          {/* Faz entregas */}
+          {fazEntrega && (
+            <View style={styles.infoRow}>
+              <Ionicons name="bicycle-outline" size={16} color={colors.text + '90'} />
+              <Text style={styles.infoText}>Fazemos entregas</Text>
+            </View>
+          )}
+
+          {/* Aberto aos domingos */}
+          {temDomingo && (
+            <View style={styles.infoRow}>
+              <Ionicons name="calendar-outline" size={16} color={colors.text + '90'} />
+              <Text style={styles.infoText}>Aberto aos domingos</Text>
+            </View>
+          )}
+
+          {/* Intervalo de almoço */}
+          {temIntervalo && (
+            <View style={styles.infoRow}>
+              <Ionicons name="hourglass-outline" size={16} color={colors.text + '90'} />
+              <Text style={styles.infoText}>
+                {isLunchBreak
+                  ? `Voltamos às ${item.horarios.intervalo.retorno}`
+                  : `Intervalo: ${item.horarios.intervalo.inicio} – ${item.horarios.intervalo.retorno}`}
+              </Text>
+            </View>
+          )}
+
+          {/* Sem intervalo */}
+          {item.horarios?.intervalo?.global === false && (
+            <View style={styles.infoRow}>
+              <Ionicons name="time-outline" size={16} color={colors.text + '90'} />
+              <Text style={styles.infoText}>Não fechamos para almoço</Text>
+            </View>
+          )}
+        </View>
       </View>
 
+      {/* Maior espaço antes do endereço */}
+      <View style={styles.addressSpacer} />
+
+      {/* Endereço */}
       {item.endereco?.complemento && (
         <View style={styles.addressContainer}>
-          <Ionicons name="location-outline" size={19} color={colors.primary || '#1A73E8'} />
           <Text style={[styles.endereco, { color: colors.text + 'EE' }]}>
-            {item.endereco?.complemento} - {item?.endereco?.bairro}
+            {item.endereco?.complemento}
+          </Text>
+          <Text style={[styles.endereco, { color: colors.text + 'EE' }]}>
+            {item?.endereco?.bairro}
           </Text>
         </View>
       )}
 
+      {/* Botão WhatsApp */}
       <Pressable onPress={handleWhatsApp} style={[styles.whatsappButton, { backgroundColor: colors.botao }]}>
         <Ionicons name="logo-whatsapp" size={28} color="#fff" />
         <Text style={styles.whatsappText}>WhatsApp</Text>
@@ -82,7 +118,7 @@ const styles = StyleSheet.create({
   header: {
     marginTop: 20,
     marginBottom: 18,
-    alignItems: 'center',
+    alignItems: 'center', // Nome e descrição centralizados
   },
   storenome: {
     fontSize: 28,
@@ -90,39 +126,41 @@ const styles = StyleSheet.create({
     letterSpacing: -0.6,
     lineHeight: 34,
   },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12,
-    gap: 9,
-  },
-  statusText: {
-    fontSize: 14,
-    fontWeight: '500',
-    textTransform: 'uppercase',
-  },
-  intervaloInfo: {
-    marginTop: 6,
-    fontSize: 14,
-    textAlign: 'center',
-    fontStyle: 'italic',
-  },
   descricao: {
     fontSize: 16.8,
     marginVertical: 20,
     textAlign: 'center',
   },
-  addressContainer: {
+  // Bloco centralizado com as informações
+  infoBlock: {
+    alignItems: 'center',
+    gap: 10, // Distância menor entre os itens
+    marginTop: 35,
+  },
+  infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
-    borderRadius: 16,
+    gap: 10,
+  },
+  infoText: {
+    fontSize: 15,
+    color: '#666',
+  },
+  // Espaço maior antes do endereço
+  addressSpacer: {
+    height: 22,
+  },
+  addressContainer: {
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 22,
     backgroundColor: '#00000006',
     marginBottom: 22,
   },
   endereco: {
     flex: 1,
     textAlign: 'center',
+    fontSize: 15
   },
   whatsappButton: {
     flexDirection: 'row',

@@ -72,6 +72,7 @@ export const confirmaPropostas = async () => {
       // Dados finais a serem salvos na coleção 'users'
       const dadosParaSalvar = {
         nome: dados.nome?.trim() || 'Sem nome',
+        categoria: '',
         descricao: dados.descricao?.trim() || '',
         endereco: {
           complemento: dados.endereco?.complemento?.trim() || '',

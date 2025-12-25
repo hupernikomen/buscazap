@@ -228,7 +228,7 @@ export default function Home({ navigation }) {
       <BottomSheetModal
         ref={modalRef}
         index={1}
-        snapPoints={['85%']}
+        snapPoints={['60%','85%']}
         onCloseEnd={fecharModal}
         onDismiss={fecharModal}
         enablePanDownToClose={true}

@@ -1,127 +1,110 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { subscribeToStores } from '../services/firebaseConnection/firestoreService';
-import { confirmaPropostas } from '../utils/confirmaPropostas'; // Função que confirma propostas pendentes
-import { carregaListaInicial } from '../utils/carregaListaInicial';         // Ordena itens sem busca (por cliques, premium, etc.)
-import { hankingDeBusca } from '../utils/hankingDeBusca';             // Ranking inteligente para resultados de busca
+import { confirmaPropostas } from '../utils/confirmaPropostas';
+import { carregaListaInicial } from '../utils/carregaListaInicial';
+import { hankingDeBusca } from '../utils/hankingDeBusca';
 
-const ITENS_FIXOS_NO_TOPO = 3; 
-// Quantos itens fixos (geralmente pagos por clique ou destaque) aparecem no topo quando não há busca ativa
+const ITENS_FIXOS_NO_TOPO = 3;
 
-/**
- * Custom Hook: useStores
- * Responsável por gerenciar o carregamento em tempo real das lojas do Firestore,
- * incluindo busca inteligente, ordenação inicial e pull-to-refresh.
- */
 export default function Carregamentos() {
-  // Estado dos resultados exibidos na tela principal
-  const [resultados, setResultados] = useState([]); 
+  const [resultados, setResultados] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+  const [atualizando, setAtualizando] = useState(false);
 
-  // Indicadores de loading
-  const [carregando, setCarregando] = useState(true);     // Loading inicial ou durante busca
-  const [atualizando, setAtualizando] = useState(false); // Loading durante pull-to-refresh
+  // Estados para lembrar o contexto da busca
+  const [estaEmBusca, setEstaEmBusca] = useState(false);
+  const [termoBuscaAtual, setTermoBuscaAtual] = useState('');
 
-  /**
-   * Função principal que inicia a subscrição em tempo real no Firestore
-   * @param {string} termo - Termo de busca digitado pelo usuário
-   * @param {boolean} executarBusca - Se true, aplica filtro e ranking de busca
-   * @param {boolean} atualizar - Se true, ativa o modo "atualizando" (pull-to-refresh)
-   */
+  // Ref para guardar a função de cancelamento atual
+  const cancelarInscricaoAtual = useRef(null);
+
   const carregarDados = useCallback(async (termo = '', executarBusca = false, atualizar = false) => {
-    // Ativa o indicador correto de loading
+    // Ativa loading correto
     if (atualizar) {
       setAtualizando(true);
     } else {
       setCarregando(true);
     }
 
-    // Processa propostas confirmadas (ex: ativa anúncios aprovados)
     await confirmaPropostas();
 
-    // Define o termo a ser usado na consulta (trim apenas se for busca real)
-    const termoBusca = executarBusca ? termo.trim() : '';
+    const termoParaUsar = executarBusca ? termo.trim() : '';
 
-    // Inscreve-se na coleção do Firestore com ou sem filtro de busca
-    // Retorna uma função de cancelamento para evitar memory leaks
-    const cancelarInscricao = subscribeToStores(termoBusca, (snapshot) => {
-      // Converte os documentos do Firestore em array de objetos
+    // *** IMPORTANTE: Cancela inscrição anterior antes de criar nova ***
+    if (cancelarInscricaoAtual.current && typeof cancelarInscricaoAtual.current === 'function') {
+      cancelarInscricaoAtual.current();
+      cancelarInscricaoAtual.current = null;
+    }
+
+    // Nova inscrição
+    const cancelar = subscribeToStores(termoParaUsar, (snapshot) => {
       const dadosBrutos = snapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(item => item?.anuncio?.postagem === true); // Apenas anúncios publicados
+        .filter(item => item?.anuncio?.postagem === true);
 
-      // Aplica ordenação conforme o contexto:
-      const listaOrdenada = termoBusca
-        ? hankingDeBusca(dadosBrutos, termoBusca)           // Com busca → ranking por relevância
-        : carregaListaInicial(dadosBrutos, ITENS_FIXOS_NO_TOPO);    // Sem busca → ordem inicial (destaques pagos no topo)
+      const listaOrdenada = termoParaUsar
+        ? hankingDeBusca(dadosBrutos, termoParaUsar)
+        : carregaListaInicial(dadosBrutos, ITENS_FIXOS_NO_TOPO);
 
-      // Atualiza o estado com os resultados finais
       setResultados(listaOrdenada);
-
-      // Desativa os loadings
       setCarregando(false);
       if (atualizar) setAtualizando(false);
     });
 
-    // Retorna a função de cancelamento para uso no cleanup
-    return cancelarInscricao;
+    // Guarda a função de cancelamento
+    cancelarInscricaoAtual.current = cancelar;
   }, []);
 
-  /**
-   * Effect: Carregamento inicial ao montar o hook
-   * Executa uma vez quando o componente que usa este hook é montado
-   */
+  // Carregamento inicial
   useEffect(() => {
-    let cancelarInscricao = () => {}; // Função vazia inicial
-
-    const iniciarCarregamento = async () => {
+    const iniciar = async () => {
       setCarregando(true);
       await confirmaPropostas();
-      // Inicia a subscrição sem termo de busca (lista inicial)
-      cancelarInscricao = await carregarDados('', false);
+      await carregarDados('', false);
     };
 
-    iniciarCarregamento();
+    iniciar();
 
-    // Cleanup: Cancela a subscrição ao desmontar o componente
+    // Cleanup ao desmontar
     return () => {
-      if (typeof cancelarInscricao === 'function') {
-        cancelarInscricao();
+      if (cancelarInscricaoAtual.current) {
+        cancelarInscricaoAtual.current();
       }
     };
   }, [carregarDados]);
 
-  /**
-   * Dispara uma nova busca com o termo informado
-   */
   const executarBusca = useCallback((termo) => {
     if (termo.trim()) {
-      setResultados([]);     // Limpa resultados antigos
-      setCarregando(true);   // Ativa loading de busca
-      carregarDados(termo, true);
+      setEstaEmBusca(true);
+      setTermoBuscaAtual(termo.trim());
+      setResultados([]);
+      setCarregando(true);
+      carregarDados(termo.trim(), true);
     }
   }, [carregarDados]);
 
-  /**
-   * Volta para a lista inicial (sem filtro de busca)
-   */
   const voltarParaListaInicial = useCallback(() => {
+    setEstaEmBusca(false);
+    setTermoBuscaAtual('');
     setResultados([]);
     carregarDados('', false);
   }, [carregarDados]);
 
-  /**
-   * Atualiza a lista atual via pull-to-refresh (mantém o estado atual de busca)
-   */
-  const atualizarLista = useCallback(() => {
-    carregarDados('', false, true);
-  }, [carregarDados]);
+  // Pull-to-refresh agora funciona perfeitamente!
+  const recarregar = useCallback(() => {
+    if (estaEmBusca && termoBuscaAtual) {
+      carregarDados(termoBuscaAtual, true, true);
+    } else {
+      carregarDados('', false, true);
+    }
+  }, [carregarDados, estaEmBusca, termoBuscaAtual]);
 
-  // Retorna tudo que o componente consumidor precisa
   return {
-    resultados,           // Lista de lojas ordenadas
-    carregando,           // true durante carregamento inicial ou busca
-    atualizando,          // true durante pull-to-refresh
-    executarBusca,        // Função para buscar por termo
-    voltarParaListaInicial, // Função para limpar busca
-    atualizarLista,       // Função para refresh manual
+    resultados,
+    carregando,
+    atualizando,
+    executarBusca,
+    voltarParaListaInicial,
+    recarregar,
   };
 }
