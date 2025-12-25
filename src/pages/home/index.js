@@ -11,19 +11,19 @@ import { useTheme } from '@react-navigation/native';
 import { BottomSheetModal, BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { MobileAds } from 'react-native-google-mobile-ads';
 
-import { carregarMenuEmTempoReal } from '../../utils/menuRolagem';
+import { carregarItensMenu } from '../../utils/carregaItensMenu';
 import { Item } from '../../component/Item';
-import { Detalhe } from '../../component/Detalhe';
+import { DetalheDoItem } from '../../component/DetalheDoItem';
 
 // Componentes locais
 import LogoHeader from '../../component/LogoHeader';
 import SearchBar from '../../component/SearchBar';
-import HorizontalMenu from '../../component/HorizontalMenu';
+import MenuHorizontal from '../../component/MenuHorizontal';
 import AdBanner from '../../component/AdBanner';
-import NoResults from '../../component/NoResults';
+import SemResultado from '../../component/SemResultado';
 
 // Hook personalizado
-import useStores from './hooks/useStores';
+import Carregamentos from '../../hooks/carregamentos';
 
 MobileAds().initialize();
 
@@ -48,12 +48,12 @@ export default function Home({ navigation }) {
     executarBusca: executarBuscaHook,
     limparBusca: limparBuscaHook,
     recarregar,
-  } = useStores();
+  } = Carregamentos();
 
   // Carrega menu horizontal
   useEffect(() => {
-    const cancelar = carregarMenuEmTempoReal(setItensMenu);
-    return () => cancelar();
+    const itensMenu = carregarItensMenu(setItensMenu);
+    return () => itensMenu();
   }, []);
 
   const onAdLoaded = (key) => {
@@ -155,11 +155,11 @@ export default function Home({ navigation }) {
           />
         );
       case 'menu_horizontal':
-        return <HorizontalMenu itensMenu={itensMenu} colors={colors} navigation={navigation} />;
+        return <MenuHorizontal itensMenu={itensMenu} colors={colors} navigation={navigation} />;
       case 'ad':
         return <AdBanner adKey={item.key} onAdLoaded={onAdLoaded} />;
       case 'no_results':
-        return <NoResults colors={colors} query={item.query} />;
+        return <SemResultado colors={colors} query={item.query} />;
       case 'store':
         return (
           <Item
@@ -237,7 +237,7 @@ export default function Home({ navigation }) {
           <View {...props} style={[style, { backgroundColor: '#000000', opacity: 0.5 }]} pointerEvents="auto" />
         )}
       >
-        {itemSelecionado && <Detalhe item={itemSelecionado} colors={colors} onClose={fecharModal} />}
+        {itemSelecionado && <DetalheDoItem item={itemSelecionado} colors={colors} onClose={fecharModal} />}
       </BottomSheetModal>
     </BottomSheetModalProvider>
   );

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, Pressable, ScrollView, Linking } from 'react-native';
 
 
-export default function HorizontalMenu({ itensMenu, colors, navigation }) {
+export default function MenuHorizontal({ itensMenu, colors, navigation }) {
   if (!itensMenu || itensMenu.length === 0) return null;
 
   const botaoFixo = {

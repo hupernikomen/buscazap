@@ -1,6 +1,6 @@
 // src/utils/ordemInicial.js
 
-export const ordemInicial = (dados, ITENS_FIXOS_POR_CLICKS) => {
+export const carregaListaInicial = (dados, ITENS_FIXOS_POR_CLICKS) => {
   if (!Array.isArray(dados) || dados.length === 0) return dados;
 
   // 1. Separa premium dos normais

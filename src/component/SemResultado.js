@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function NoResults({ colors, query }) {
+export default function SemResultado({ colors, query }) {
   return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40, paddingVertical: 100 }}>
       <Ionicons name="search-outline" size={40} color={colors.text + '60'} />

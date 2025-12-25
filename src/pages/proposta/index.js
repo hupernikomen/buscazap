@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Switch,
 } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -21,11 +22,23 @@ export default function Proposta({ navigation }) {
 
   const [form, setForm] = useState({
     nome: '',
-    descricao: '',
     complemento: '',
     bairro: '',
     whatsapp: '',
     tags: '',
+    fazEntrega: false,
+    abertoDomingo: false,
+    temIntervaloAlmoco: false, // Novo: possui intervalo de almoço?
+    // Horários padrão
+    semanaAbre: '08:00',
+    semanaFecha: '18:00',
+    sabadoAbre: '08:00',
+    sabadoFecha: '13:00',
+    domingoAbre: '09:00',
+    domingoFecha: '13:00',
+    // Intervalo de almoço
+    intervaloInicio: '12:00',
+    intervaloRetorno: '13:30',
   });
 
   const [errors, setErrors] = useState({
@@ -36,7 +49,7 @@ export default function Proposta({ navigation }) {
     tags: false,
   });
 
-  // Máscara WhatsApp: (DD) 99999-9999
+  // Máscara WhatsApp
   const formatWhatsApp = (text) => {
     const numbers = text.replace(/\D/g, '');
     if (numbers.length <= 2) return numbers;
@@ -62,7 +75,7 @@ export default function Proposta({ navigation }) {
     setErrors(newErrors);
 
     if (Object.values(newErrors).some(Boolean)) {
-      return; // Para se houver erro
+      return;
     }
 
     setLoading(true);
@@ -70,15 +83,40 @@ export default function Proposta({ navigation }) {
     try {
       const whatsappNumbers = form.whatsapp.replace(/\D/g, '');
 
+      const horarios = {
+        semana: {
+          abre: form.semanaAbre.trim(),
+          fecha: form.semanaFecha.trim(),
+        },
+        sabado: {
+          abre: form.sabadoAbre.trim(),
+          fecha: form.sabadoFecha.trim(),
+        },
+        // Domingo opcional
+        ...(form.abertoDomingo && {
+          domingo: {
+            abre: form.domingoAbre.trim(),
+            fecha: form.domingoFecha.trim(),
+          },
+        }),
+        // Intervalo de almoço opcional
+        intervalo: {
+          global: form.temIntervaloAlmoco,
+          inicio: form.temIntervaloAlmoco ? form.intervaloInicio.trim() : '12:00',
+          retorno: form.temIntervaloAlmoco ? form.intervaloRetorno.trim() : '13:30',
+        },
+      };
+
       await addDoc(collection(db, 'propostas'), {
         nome: form.nome.trim(),
-        descricao: form.descricao.trim(),
         endereco: {
           complemento: form.complemento.trim(),
           bairro: form.bairro.trim(),
         },
         whatsapp: { principal: whatsappNumbers },
         tags: form.tags.split(',').map(t => t.trim().toLowerCase()).filter(Boolean),
+        fazEntrega: form.fazEntrega,
+        horarios,
         criadoEm: serverTimestamp(),
         anuncio: {
           postagem: true,
@@ -90,7 +128,7 @@ export default function Proposta({ navigation }) {
 
       navigation.goBack();
     } catch (error) {
-      console.error(error);
+      console.error('Erro ao enviar proposta:', error);
     } finally {
       setLoading(false);
     }
@@ -106,13 +144,9 @@ export default function Proposta({ navigation }) {
 
           {/* Nome */}
           <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>
-            <Text style={styles.label}>Nome *</Text>
+            <Text style={styles.label}>Nome</Text>
             <TextInput
-              style={[
-                styles.input,
-                { color: colors.text },
-                errors.nome && styles.inputError,
-              ]}
+              style={[styles.input, { color: colors.text }, errors.nome && styles.inputError]}
               value={form.nome}
               onChangeText={(t) => {
                 setForm({ ...form, nome: t.slice(0, 30) });
@@ -121,39 +155,20 @@ export default function Proposta({ navigation }) {
               placeholder="Ex: Pizzaria do Zé"
               maxLength={30}
             />
-            <Text style={styles.counter}>{form.nome.length}/30</Text>
             {errors.nome && <Text style={styles.errorText}>Campo obrigatório</Text>}
           </View>
 
-          {/* Descrição */}
-          {/* <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>
-            <Text style={styles.label}>Descrição</Text>
-            <TextInput
-              style={[styles.inputMultiline, { color: colors.text }]}
-              value={form.descricao}
-              onChangeText={(t) => setForm({ ...form, descricao: t.slice(0, 100) })}
-              placeholder="Fale sobre seu negócio..."
-              multiline
-              maxLength={100}
-            />
-            <Text style={styles.counter}>{form.descricao.length}/100</Text>
-          </View> */}
-
           {/* Endereço */}
           <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>
-            <Text style={styles.label}>Endereço</Text>
+            <Text style={styles.label}>Endereço (rua e número)</Text>
             <TextInput
-              style={[
-                styles.input,
-                { color: colors.text },
-                errors.complemento && styles.inputError,
-              ]}
+              style={[styles.input, { color: colors.text }, errors.complemento && styles.inputError]}
               value={form.complemento}
               onChangeText={(t) => {
                 setForm({ ...form, complemento: t });
                 if (errors.complemento) setErrors({ ...errors, complemento: false });
               }}
-              placeholder="Rua, nº"
+              placeholder="Ex: Av. Joaquim Nelson, 123"
             />
             {errors.complemento && <Text style={styles.errorText}>Campo obrigatório</Text>}
           </View>
@@ -162,54 +177,172 @@ export default function Proposta({ navigation }) {
           <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>
             <Text style={styles.label}>Bairro</Text>
             <TextInput
-              style={[
-                styles.input,
-                { color: colors.text },
-                errors.bairro && styles.inputError,
-              ]}
+              style={[styles.input, { color: colors.text }, errors.bairro && styles.inputError]}
               value={form.bairro}
               onChangeText={(t) => {
                 setForm({ ...form, bairro: t });
                 if (errors.bairro) setErrors({ ...errors, bairro: false });
               }}
-              placeholder="Centro"
+              placeholder="Ex: Centro"
             />
             {errors.bairro && <Text style={styles.errorText}>Campo obrigatório</Text>}
           </View>
 
           {/* WhatsApp */}
           <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>
-            <Text style={styles.label}>WhatsApp (com DDD) *</Text>
+            <Text style={styles.label}>WhatsApp (com DDD)</Text>
             <TextInput
-              style={[
-                styles.input,
-                { color: colors.text },
-                errors.whatsapp && styles.inputError,
-              ]}
+              style={[styles.input, { color: colors.text }, errors.whatsapp && styles.inputError]}
               value={form.whatsapp}
               onChangeText={handleWhatsAppChange}
-              placeholder="(99) 99999-9999"
+              placeholder="(86) 99999-9999"
               keyboardType="phone-pad"
               maxLength={15}
             />
             {errors.whatsapp && <Text style={styles.errorText}>WhatsApp inválido</Text>}
           </View>
 
+          {/* Faz entregas? */}
+          <View style={{ backgroundColor: colors.card, borderRadius: 16, paddingVertical: 8 }}>
+            <View style={styles.switchRow}>
+              <Text style={styles.switchLabel}>Faz entregas?</Text>
+              <Switch
+                value={form.fazEntrega}
+                onValueChange={(value) => setForm({ ...form, fazEntrega: value })}
+                trackColor={{ false: '#767577', true: colors.botao }}
+                thumbColor={form.fazEntrega ? '#fff' : '#f4f3f4'}
+              />
+            </View>
+          </View>
+
+          {/* Horários de Funcionamento */}
+          <View style={{ backgroundColor: colors.card, borderRadius: 16, paddingVertical: 12 }}>
+            <Text style={[styles.sectionTitle]}>Horários</Text>
+
+            {/* Segunda a Sexta */}
+            <View style={styles.horarioRow}>
+              <Text style={styles.horarioDia}>Segunda a Sexta</Text>
+              <TextInput
+                style={styles.horarioInput}
+                value={form.semanaAbre}
+                onChangeText={(t) => setForm({ ...form, semanaAbre: t })}
+                placeholder="08:00"
+                keyboardType="numbers-and-punctuation"
+                maxLength={5}
+              />
+              <Text style={styles.horarioSeparator}>às</Text>
+              <TextInput
+                style={styles.horarioInput}
+                value={form.semanaFecha}
+                onChangeText={(t) => setForm({ ...form, semanaFecha: t })}
+                placeholder="18:00"
+                keyboardType="numbers-and-punctuation"
+                maxLength={5}
+              />
+            </View>
+
+            {/* Sábado */}
+            <View style={styles.horarioRow}>
+              <Text style={styles.horarioDia}>Sábado</Text>
+              <TextInput
+                style={styles.horarioInput}
+                value={form.sabadoAbre}
+                onChangeText={(t) => setForm({ ...form, sabadoAbre: t })}
+                placeholder="08:00"
+                keyboardType="numbers-and-punctuation"
+                maxLength={5}
+              />
+              <Text style={styles.horarioSeparator}>às</Text>
+              <TextInput
+                style={styles.horarioInput}
+                value={form.sabadoFecha}
+                onChangeText={(t) => setForm({ ...form, sabadoFecha: t })}
+                placeholder="13:00"
+                keyboardType="numbers-and-punctuation"
+                maxLength={5}
+              />
+            </View>
+
+            {/* Domingo */}
+            <View style={styles.switchRow}>
+              <Text style={styles.switchLabel}>Aberto aos domingos?</Text>
+              <Switch
+                value={form.abertoDomingo}
+                onValueChange={(value) => setForm({ ...form, abertoDomingo: value })}
+                trackColor={{ false: '#767577', true: colors.botao }}
+                thumbColor={form.abertoDomingo ? '#fff' : '#f4f3f4'}
+              />
+            </View>
+
+            {form.abertoDomingo && (
+              <View style={styles.horarioRow}>
+                <Text style={styles.horarioDia}>Domingo</Text>
+                <TextInput
+                  style={styles.horarioInput}
+                  value={form.domingoAbre}
+                  onChangeText={(t) => setForm({ ...form, domingoAbre: t })}
+                  placeholder="09:00"
+                  keyboardType="numbers-and-punctuation"
+                  maxLength={5}
+                />
+                <Text style={styles.horarioSeparator}>às</Text>
+                <TextInput
+                  style={styles.horarioInput}
+                  value={form.domingoFecha}
+                  onChangeText={(t) => setForm({ ...form, domingoFecha: t })}
+                  placeholder="13:00"
+                  keyboardType="numbers-and-punctuation"
+                  maxLength={5}
+                />
+              </View>
+            )}
+
+            {/* Intervalo de Almoço */}
+            <View style={styles.switchRow}>
+              <Text style={styles.switchLabel}>Possui intervalo de almoço?</Text>
+              <Switch
+                value={form.temIntervaloAlmoco}
+                onValueChange={(value) => setForm({ ...form, temIntervaloAlmoco: value })}
+                trackColor={{ false: '#767577', true: colors.botao }}
+                thumbColor={form.temIntervaloAlmoco ? '#fff' : '#f4f3f4'}
+              />
+            </View>
+
+            {form.temIntervaloAlmoco && (
+              <View style={styles.horarioRow}>
+                <Text style={styles.horarioDia}>Intervalo</Text>
+                <TextInput
+                  style={styles.horarioInput}
+                  value={form.intervaloInicio}
+                  onChangeText={(t) => setForm({ ...form, intervaloInicio: t })}
+                  placeholder="12:00"
+                  keyboardType="numbers-and-punctuation"
+                  maxLength={5}
+                />
+                <Text style={styles.horarioSeparator}>às</Text>
+                <TextInput
+                  style={styles.horarioInput}
+                  value={form.intervaloRetorno}
+                  onChangeText={(t) => setForm({ ...form, intervaloRetorno: t })}
+                  placeholder="13:30"
+                  keyboardType="numbers-and-punctuation"
+                  maxLength={5}
+                />
+              </View>
+            )}
+          </View>
+
           {/* Palavras-chave */}
           <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>
-            <Text style={styles.label}>Palavras-chave (Separe por virgula) *</Text>
+            <Text style={styles.label}>Palavras-chave (separadas por vírgula)</Text>
             <TextInput
-              style={[
-                styles.inputMultiline,
-                { color: colors.text },
-                errors.tags && styles.inputError,
-              ]}
+              style={[styles.inputMultiline, { color: colors.text }, errors.tags && styles.inputError]}
               value={form.tags}
               onChangeText={(t) => {
                 setForm({ ...form, tags: t });
                 if (errors.tags) setErrors({ ...errors, tags: false });
               }}
-              placeholder="pizza, delivery, entrega grátis"
+              placeholder="pizza, delivery, açaí, 24h, promoção"
               multiline
             />
             {errors.tags && <Text style={styles.errorText}>Campo obrigatório</Text>}
@@ -249,8 +382,15 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     marginTop: 10,
-    marginLeft: 16,
+    marginLeft: 18,
+    fontWeight:500,
     marginBottom: -6,
+  },
+  sectionTitle: {
+    fontWeight:500,
+    marginLeft: 16,
+    marginBottom: 8,
+    color: '#333',
   },
   input: {
     borderRadius: 16,
@@ -307,5 +447,42 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: '700',
+  },
+  switchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  switchLabel: {
+    fontSize: 15,
+    color: '#333',
+  },
+  horarioRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 10,
+  },
+  horarioDia: {
+    flex: 1,
+    fontSize: 15,
+    color: '#333',
+  },
+  horarioInput: {
+    width: 70,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 10,
+    textAlign: 'center',
+    fontSize: 15,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  horarioSeparator: {
+    fontSize: 15,
+    color: '#555',
   },
 });

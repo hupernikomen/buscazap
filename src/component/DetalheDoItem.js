@@ -1,11 +1,11 @@
 // src/component/StoreBottomSheet.js
 import { Text, Pressable, Linking, View, StyleSheet } from 'react-native';
 import { BottomSheetView } from '@gorhom/bottom-sheet';
-import { getHorarioStatus } from '../utils/horarioUtils';
+import { getHorarioStatus } from '../utils/carregaHorarios';
 import { Ionicons } from '@expo/vector-icons';
 import { incrementClicks } from '../services/firebaseConnection/firestoreService';
 
-export const Detalhe = ({ item, colors }) => {
+export const DetalheDoItem = ({ item, colors }) => {
   const horarioStatus = getHorarioStatus(item.horarios);
 
   const handleWhatsApp = async () => {
