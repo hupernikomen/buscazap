@@ -49,7 +49,7 @@ export default function App() {
         >
           <Stack.Screen name="Home" component={Home} options={{ headerShown: false }} />
           <Stack.Screen name="Proposta" component={Proposta} options={{ headerShadowVisible:false, title:'Solicitar Anúncio' }} />
-          <Stack.Screen name="InfoPromocao" component={InfoPromocao}  options={{ headerShadowVisible:false, title:'Promover seu anúncio' }} />
+          <Stack.Screen name="InfoPromocao" component={InfoPromocao}  options={{ headerShadowVisible:false, title:'Destaque seu anúncio' }} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaView>
