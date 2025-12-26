@@ -142,6 +142,12 @@ export default function Proposta({ navigation }) {
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.card}>
 
+          {/* Título principal */}
+                <View style={styles.header}>
+                  <Text style={styles.title}>É grátis, fácil e rápido</Text>
+                  <Text style={styles.subtitle}>Preencha o formulário de anúncio, todos os campos são obrigatórios</Text>
+                </View>
+
           {/* Nome */}
           <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>
             <Text style={styles.label}>Nome</Text>
@@ -375,6 +381,23 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 30,
   },
+   header: {
+    paddingHorizontal: 30,
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 30,
+    fontWeight: '800',
+    textAlign: 'center',
+    lineHeight: 38,
+    color: '#333',
+  },
+  subtitle: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginVertical: 12,
+    color: '#555',
+  },
   card: {
     paddingBottom: 30,
     gap: 12,
@@ -429,6 +452,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     textAlign: 'center',
+    fontSize:16,
     marginTop: 20,
     paddingHorizontal: 22,
     lineHeight: 18,

@@ -9,7 +9,6 @@ import {
   Pressable,
 } from 'react-native';
 import { useTheme } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
 
 const EXEMPLO_ANUNCIO = 'https://firebasestorage.googleapis.com/v0/b/appguiacomercial-e6109.appspot.com/o/anuncio.jpeg?alt=media&token=31c49db5-6670-454e-a662-78bc8a2cf42a';
 
@@ -18,79 +17,84 @@ export default function InfoPromocao({ navigation }) {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Título principal */}
+      <View style={styles.header}>
+        <Text style={styles.title}>Coloque sua loja no topo</Text>
+        <Text style={styles.subtitle}>e receba mais mensagens no WhatsApp todos os dias</Text>
+      </View>
 
-      {/* Exemplo visual do anúncio promovido */}
-      <View style={styles.exampleSection}>
-        <Image source={{ uri: EXEMPLO_ANUNCIO }} style={styles.exampleImage} resizeMode="cover" />
-        <Text style={styles.exampleLabel}>Assim ficará seu anúncio destacado</Text>
+      {/* Exemplo do anúncio destacado */}
+      <View style={styles.exampleContainer}>
+        <Text style={styles.exampleTitle}>Veja como seu anúncio ficará em destaque</Text>
+        <Image 
+          source={{ uri: EXEMPLO_ANUNCIO }} 
+          style={styles.exampleImage} 
+          resizeMode="contain" 
+        />
       </View>
 
       {/* Introdução */}
-      <View style={styles.intro}>
+      <View style={styles.introContainer}>
         <Text style={styles.introText}>
-          Escolha o destaque ideal para o seu objetivo e comece a atrair mais clientes hoje mesmo.
+          O Busca Zap é usado por milhares de pessoas em Teresina para encontrar lojas e falar direto no WhatsApp. 
+          Com um plano de destaque, sua loja aparece primeiro — aumentando muito suas chances de receber mensagens e vender mais.
         </Text>
       </View>
 
-      {/* Plano Fixo */}
-      <View style={styles.planContainer}>
-        <View style={[styles.planCard, { borderColor: '#4CAF50' }]}>
-          <Ionicons name="pin" size={40} color="#4CAF50" />
-          <Text style={styles.planName}>Anúncio Fixo</Text>
-          <Text style={styles.planPrice}>R$ 9,90/mês</Text>
+      {/* Plano 1 - Anúncio Fixo */}
+      <View style={styles.planCard}>
+        <Text style={styles.planBadge}>MAIS VISIBILIDADE</Text>
+        <Text style={styles.planTitle}>Anúncio Fixo no Topo</Text>
+        <Text style={styles.planPrice}>R$ 9,90 por mês</Text>
 
-          <Text style={styles.planInfo}>
-            Anúncio fixado no topo da tela inicial{'\n'}
-            (máximo 3 anúncios no App)
-          </Text>
+        <Text style={styles.planDescription}>
+          Seu anúncio fica sempre visível no topo da tela inicial do app, junto com no máximo outros 3 lojistas.
+        </Text>
 
-          <View style={styles.planFeatures}>
-            <Text style={styles.feature}>• Visibilidade para todos os usuários</Text>
-            <Text style={styles.feature}>• Fortalece sua marca</Text>
-            <Text style={styles.feature}>• Presença constante</Text>
-          </View>
+        <Text style={styles.planHighlight}>
+          Perfeito para quem quer fortalecer a marca e ser lembrado como referência na cidade.
+        </Text>
 
-          <Pressable 
-            style={styles.planButton}
-            onPress={() => navigation.navigate('Proposta', { plano: 'fixo' })}
-          >
-            <Text style={styles.buttonText}>Quero este</Text>
-          </Pressable>
-        </View>
-
-        {/* Plano Busca */}
-        <View style={[styles.planCard, { borderColor: '#2196F3' }]}>
-          <Ionicons name="search" size={40} color="#2196F3" />
-          <Text style={styles.planName}>Anúncio de Busca</Text>
-          <Text style={styles.planPrice}>R$ 4,90/mês</Text>
-
-          <Text style={styles.planInfo}>
-            Destaque no topo dos resultados{'\n'}
-            de buscas. Aqui sugerimos melhorar suas palavras-chave.
-          </Text>
-
-          <View style={styles.planFeatures}>
-            <Text style={styles.feature}>• Atrai clientes expecificos</Text>
-            <Text style={styles.feature}>• Alta chance de conversão</Text>
-            <Text style={styles.feature}>• Resultados imediatos</Text>
-          </View>
-
-          <Pressable 
-            style={styles.planButton}
-            onPress={() => navigation.navigate('Proposta', { plano: 'busca' })}
-          >
-            <Text style={styles.buttonText}>Quero este</Text>
-          </Pressable>
-        </View>
+        <Pressable 
+          style={[styles.actionButton, { backgroundColor: colors.botao }]}
+          onPress={() => navigation.navigate('Proposta', { plano: 'fixo' })}
+        >
+          <Text style={styles.actionText}>Quero este</Text>
+        </Pressable>
       </View>
 
-      {/* Rodapé simples e direto */}
+      {/* Plano 2 - Anúncio de Busca */}
+      <View style={styles.planCard}>
+        <Text style={styles.planBadge}>MAIS VENDAS</Text>
+        <Text style={styles.planTitle}>Anúncio no Topo da Busca</Text>
+        <Text style={styles.planPrice}>R$ 6,90 por mês</Text>
+
+        <Text style={styles.planDescription}>
+          Quando alguém buscar por palavras que você definiu nas palavras-chave do seu anúncio (como "pizza", "farmácia", "entrega" etc.), seu anúncio aparecerá no topo dos resultados.
+        </Text>
+
+        <Text style={styles.planHighlight}>
+          Ideal para quem quer receber mensagens de clientes já prontos para comprar.
+        </Text>
+
+        <Pressable 
+          style={[styles.actionButton, { backgroundColor: colors.botao }]}
+          onPress={() => navigation.navigate('Proposta', { plano: 'busca' })}
+        >
+          <Text style={styles.actionText}>Quero este</Text>
+        </Pressable>
+      </View>
+
+      {/* Rodapé tranquilizador */}
       <View style={styles.footer}>
         <Text style={styles.footerText}>
-          Não há vínculo contratual • Solicite o tempo desejado, e no final seu anúncio é retirado do ar • Suporte por WhatsApp
+          • Sem contrato de fidelidade{'\n'}
+          • Você escolhe quanto tempo quer ficar em destaque{'\n'}
+          • Pagamento mensal simples e seguro{'\n'}
+          • Suporte direto por WhatsApp
         </Text>
-        <Text style={styles.footerBold}>
-          Comece agora e veja sua loja no topo!
+        <Text style={styles.footerCall}>
+          Comece hoje e veja o WhatsApp da sua loja tocar mais!
         </Text>
       </View>
 
@@ -103,103 +107,127 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-
-  exampleSection: {
+  header: {
+    paddingHorizontal: 30,
     alignItems: 'center',
-    marginTop: 16,
+  },
+  title: {
+    fontSize: 30,
+    fontWeight: '800',
+    textAlign: 'center',
+    lineHeight: 38,
+    color: '#333',
+  },
+  subtitle: {
+    fontSize: 18,
+    textAlign: 'center',
+    marginTop: 12,
+    color: '#555',
+    lineHeight: 26,
+  },
+  exampleContainer: {
+    alignItems: 'center',
+    marginTop: 40,
     paddingHorizontal: 20,
   },
-  exampleLabel: {
-    fontSize: 16,
-    color: '#444',
-    marginVertical: 16,
+  exampleTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 20,
     textAlign: 'center',
   },
   exampleImage: {
-width: '100%',
-      height: undefined,        // importante
-      aspectRatio: 703 / 238,   // mantém a proporção original (≈ 2.9538)
-      resizeMode: 'contain',    // mostra a imagem inteira (pode deixar barras pretas/brancas)
-      elevation:15
+    width: '100%',
+    height: undefined,
+    aspectRatio: 1.8, // ajuste conforme a proporção real da imagem
+    borderRadius: 20,
+    backgroundColor: '#f8f8f8',
+    elevation: 8,
   },
-  intro: {
+  introContainer: {
     paddingHorizontal: 30,
-    marginTop: 40,
-    marginBottom: 20,
+    marginVertical: 40,
   },
   introText: {
-    fontSize: 17,
-    textAlign: 'center',
+    fontSize: 16.5,
     lineHeight: 26,
-    color: '#555',
-  },
-  planContainer: {
-    paddingHorizontal: 20,
-  },
-  planCard: {
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    padding: 28,
-    marginBottom: 24,
-    alignItems: 'center',
-    borderWidth: 3,
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-  },
-  planName: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginVertical: 12,
-  },
-  planPrice: {
-    fontSize: 34,
-    fontWeight: '900',
-    color: '#333',
-  },
-  planInfo: {
-    fontSize: 16,
     textAlign: 'center',
-    marginVertical: 20,
-    lineHeight: 24,
-    color: '#555',
-  },
-  planFeatures: {
-    width: '100%',
-    marginBottom: 28,
-  },
-  feature: {
-    fontSize: 15.5,
-    lineHeight: 24,
     color: '#444',
   },
-  planButton: {
-    backgroundColor: '#000',
+  planCard: {
+    marginHorizontal: 24,
+    marginBottom: 32,
+    padding: 28,
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    alignItems: 'center',
+    elevation: 6,
+  },
+  planBadge: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFF',
+    backgroundColor: '#FF6B6B',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  planTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  planPrice: {
+    fontSize: 32,
+    fontWeight: '900',
+    color: '#2e8b57',
+    marginBottom: 20,
+  },
+  planDescription: {
+    fontSize: 16,
+    textAlign: 'center',
+    color: '#555',
+    lineHeight: 24,
+    marginBottom: 16,
+  },
+  planHighlight: {
+    fontSize: 16,
+    textAlign: 'center',
+    fontWeight: '600',
+    color: '#333',
+    lineHeight: 24,
+    marginBottom: 28,
+  },
+  actionButton: {
     width: '100%',
     paddingVertical: 18,
     borderRadius: 30,
     alignItems: 'center',
   },
-  buttonText: {
+  actionText: {
     color: '#FFF',
     fontSize: 17,
     fontWeight: '700',
   },
   footer: {
-    marginTop: 20,
     paddingHorizontal: 30,
+    paddingVertical: 40,
     alignItems: 'center',
+    backgroundColor: '#f9f9f9',
   },
   footerText: {
-    fontSize: 15,
-    color: '#777',
+    fontSize: 15.5,
+    color: '#666',
     textAlign: 'center',
-    marginBottom: 12,
+    lineHeight: 24,
+    marginBottom: 20,
   },
-  footerBold: {
-    fontSize: 18,
+  footerCall: {
+    fontSize: 19,
     fontWeight: '700',
     textAlign: 'center',
     color: '#333',
