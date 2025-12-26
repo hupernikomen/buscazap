@@ -36,8 +36,8 @@ export default function InfoPromocao({ navigation }) {
       {/* Introdução */}
       <View style={styles.introContainer}>
         <Text style={styles.introText}>
-          O Busca Zap é usado por milhares de pessoas em Teresina para encontrar lojas e falar direto no WhatsApp. 
-          Com um plano de destaque, sua loja aparece primeiro — aumentando muito suas chances de receber mensagens e vender mais.
+          O Busca Zap é usado por milhares de pessoas em Teresina para encontrar lojas e serviços e falar direto no WhatsApp. 
+          Com um plano de destaque, sua loja aparece primeiro — aumentando muito suas chances de contato com clientes e vender mais.
         </Text>
       </View>
 
@@ -90,7 +90,7 @@ export default function InfoPromocao({ navigation }) {
         <Text style={styles.footerText}>
           • Sem contrato de fidelidade{'\n'}
           • Você escolhe quanto tempo quer ficar em destaque{'\n'}
-          • Pagamento mensal simples e seguro{'\n'}
+          • Pagamento mensal simples via PIX{'\n'}
           • Suporte direto por WhatsApp
         </Text>
         <Text style={styles.footerCall}>
