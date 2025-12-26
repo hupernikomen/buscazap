@@ -16,7 +16,7 @@ export default function InfoPromocao({ navigation }) {
   const { colors } = useTheme();
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+    <ScrollView showsVerticalScrollIndicator={false} style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Título principal */}
       <View style={styles.header}>
         <Text style={styles.title}>Coloque sua loja no topo</Text>

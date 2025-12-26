@@ -113,6 +113,8 @@ export default function Proposta({ navigation }) {
           complemento: form.complemento.trim(),
           bairro: form.bairro.trim(),
         },
+        descricao: '',
+        categoria: '',
         whatsapp: { principal: whatsappNumbers },
         tags: form.tags.split(',').map(t => t.trim().toLowerCase()).filter(Boolean),
         fazEntrega: form.fazEntrega,

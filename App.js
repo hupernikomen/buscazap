@@ -48,8 +48,8 @@ export default function App() {
           }}
         >
           <Stack.Screen name="Home" component={Home} options={{ headerShown: false }} />
-          <Stack.Screen name="Proposta" component={Proposta} options={{ headerShadowVisible:false, title:'' }} />
-          <Stack.Screen name="InfoPromocao" component={InfoPromocao}  options={{ headerShadowVisible:false, title:'' }} />
+          <Stack.Screen name="Proposta" component={Proposta} options={{ headerShadowVisible:false, title:'', animation:'slide_from_left' }} />
+          <Stack.Screen name="InfoPromocao" component={InfoPromocao}  options={{ headerShadowVisible:false, title:'', animation:'slide_from_left' }} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaView>

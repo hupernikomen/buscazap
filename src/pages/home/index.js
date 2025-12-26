@@ -6,6 +6,7 @@ import {
   RefreshControl,
   BackHandler,
   Text,
+  Pressable,
 } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { BottomSheetModal, BottomSheetModalProvider } from '@gorhom/bottom-sheet';
@@ -75,12 +76,21 @@ export default function Home({ navigation }) {
     voltarParaListaInicial();
   };
 
-  const handleChangeText = (texto) => {
-    setTermoBusca(texto);
+const handleChangeText = (texto) => {
+  setTermoBusca(texto);
+
+  // Se o campo ficou completamente vazio
+  if (texto.trim() === '') {
+    // Força o reset completo: estado + recarrega lista inicial
+    setBuscaExecutada(false);
+    voltarParaListaInicial(); // Chama o hook para recarregar a lista completa
+  } else {
+    // Se tinha texto e estava em modo busca, reseta apenas o flag (para permitir nova busca)
     if (buscaExecutada) {
       setBuscaExecutada(false);
     }
-  };
+  }
+};
 
   const handleScroll = (event) => {
     const scrollY = event.nativeEvent.contentOffset.y;
@@ -234,7 +244,7 @@ export default function Home({ navigation }) {
         enablePanDownToClose={true}
         backgroundStyle={{ backgroundColor: colors.background }}
         backdropComponent={({ style, ...props }) => (
-          <View {...props} style={[style, { backgroundColor: '#000000', opacity: 0.5 }]} pointerEvents="auto" />
+          <Pressable {...props} style={[style, { backgroundColor: '#000000', opacity: 0.5 }]} pointerEvents="auto" onPress={()=> modalRef.current?.close()} />
         )}
       >
         {itemSelecionado && <DetalheDoItem item={itemSelecionado} colors={colors} onClose={fecharModal} />}

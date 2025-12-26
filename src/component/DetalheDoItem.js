@@ -46,13 +46,6 @@ export const DetalheDoItem = ({ item, colors }) => {
             <Text style={styles.infoText}>{horarioStatus.text}</Text>
           </View>
 
-          {/* Faz entregas */}
-          {fazEntrega && (
-            <View style={styles.infoRow}>
-              <Ionicons name="bicycle-outline" size={16} color={colors.text + '90'} />
-              <Text style={styles.infoText}>Fazemos entregas</Text>
-            </View>
-          )}
 
           {/* Aberto aos domingos */}
           {temDomingo && (
@@ -81,6 +74,15 @@ export const DetalheDoItem = ({ item, colors }) => {
               <Text style={styles.infoText}>Não fechamos para almoço</Text>
             </View>
           )}
+
+          {/* Faz entregas */}
+          {fazEntrega && (
+            <View style={styles.infoRow}>
+              <Ionicons name="bicycle-outline" size={16} color={colors.text + '90'} />
+              <Text style={styles.infoText}>Fazemos entregas</Text>
+            </View>
+          )}
+
         </View>
       </View>
 
