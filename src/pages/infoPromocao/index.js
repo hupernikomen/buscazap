@@ -67,7 +67,7 @@ export default function InfoPromocao({ navigation }) {
       <View style={styles.planCard}>
         <Text style={styles.planBadge}>MAIS VENDAS</Text>
         <Text style={styles.planTitle}>Anúncio no Topo da Busca</Text>
-        <Text style={styles.planPrice}>R$ 6,90 por mês</Text>
+        <Text style={styles.planPrice}>R$ 4,90 por mês</Text>
 
         <Text style={styles.planDescription}>
           Quando alguém buscar por palavras que você definiu nas palavras-chave do seu anúncio (como "pizza", "farmácia", "entrega" etc.), seu anúncio aparecerá no topo dos resultados.
