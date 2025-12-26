@@ -46,7 +46,7 @@ export default function Home({ navigation }) {
     carregando,
     atualizando,
     executarBusca: executarBuscaHook,
-    limparBusca: limparBuscaHook,
+    voltarParaListaInicial,
     recarregar,
   } = Carregamentos();
 
@@ -72,7 +72,7 @@ export default function Home({ navigation }) {
   const limparBusca = () => {
     setTermoBusca('');
     setBuscaExecutada(false);
-    limparBuscaHook();
+    voltarParaListaInicial();
   };
 
   const handleChangeText = (texto) => {
