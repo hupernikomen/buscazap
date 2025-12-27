@@ -93,10 +93,7 @@ export const DetalheDoItem = ({ item, colors }) => {
       {item.endereco?.complemento && (
         <View style={styles.addressContainer}>
           <Text style={[styles.endereco, { color: colors.text + 'EE' }]}>
-            {item.endereco?.complemento}
-          </Text>
-          <Text style={[styles.endereco, { color: colors.text + 'EE' }]}>
-            {item?.endereco?.bairro}
+            {item.endereco?.complemento} - {item?.endereco?.bairro}
           </Text>
         </View>
       )}
@@ -130,7 +127,7 @@ const styles = StyleSheet.create({
   },
   descricao: {
     fontSize: 16.8,
-    marginVertical: 20,
+    marginVertical: 12,
     textAlign: 'center',
   },
   // Bloco centralizado com as informações

@@ -238,7 +238,7 @@ const handleChangeText = (texto) => {
       <BottomSheetModal
         ref={modalRef}
         index={1}
-        snapPoints={['60%','85%']}
+        snapPoints={['65%','90%']}
         onCloseEnd={fecharModal}
         onDismiss={fecharModal}
         enablePanDownToClose={true}

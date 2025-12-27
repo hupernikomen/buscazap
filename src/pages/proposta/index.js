@@ -22,27 +22,27 @@ export default function Proposta({ navigation }) {
 
   const [form, setForm] = useState({
     nome: '',
+    descricao: '',
     complemento: '',
     bairro: '',
     whatsapp: '',
     tags: '',
     fazEntrega: false,
     abertoDomingo: false,
-    temIntervaloAlmoco: false, // Novo: possui intervalo de almoço?
-    // Horários padrão
+    temIntervaloAlmoco: false,
     semanaAbre: '08:00',
     semanaFecha: '18:00',
     sabadoAbre: '08:00',
     sabadoFecha: '13:00',
     domingoAbre: '09:00',
     domingoFecha: '13:00',
-    // Intervalo de almoço
     intervaloInicio: '12:00',
     intervaloRetorno: '13:30',
   });
 
   const [errors, setErrors] = useState({
     nome: false,
+    descricao: false,
     complemento: false,
     bairro: false,
     whatsapp: false,
@@ -66,6 +66,7 @@ export default function Proposta({ navigation }) {
   const validateAndSubmit = async () => {
     const newErrors = {
       nome: !form.nome.trim(),
+      descricao: !form.descricao.trim(),
       complemento: !form.complemento.trim(),
       bairro: !form.bairro.trim(),
       whatsapp: form.whatsapp.replace(/\D/g, '').length < 11,
@@ -92,14 +93,12 @@ export default function Proposta({ navigation }) {
           abre: form.sabadoAbre.trim(),
           fecha: form.sabadoFecha.trim(),
         },
-        // Domingo opcional
         ...(form.abertoDomingo && {
           domingo: {
             abre: form.domingoAbre.trim(),
             fecha: form.domingoFecha.trim(),
           },
         }),
-        // Intervalo de almoço opcional
         intervalo: {
           global: form.temIntervaloAlmoco,
           inicio: form.temIntervaloAlmoco ? form.intervaloInicio.trim() : '12:00',
@@ -109,12 +108,11 @@ export default function Proposta({ navigation }) {
 
       await addDoc(collection(db, 'propostas'), {
         nome: form.nome.trim(),
+        descricao: form.descricao.trim(),
         endereco: {
           complemento: form.complemento.trim(),
           bairro: form.bairro.trim(),
         },
-        descricao: '',
-        categoria: '',
         whatsapp: { principal: whatsappNumbers },
         tags: form.tags.split(',').map(t => t.trim().toLowerCase()).filter(Boolean),
         fazEntrega: form.fazEntrega,
@@ -145,10 +143,10 @@ export default function Proposta({ navigation }) {
         <View style={styles.card}>
 
           {/* Título principal */}
-                <View style={styles.header}>
-                  <Text style={styles.title}>É grátis, fácil e rápido</Text>
-                  <Text style={styles.subtitle}>Preencha o formulário de anúncio, todos os campos são obrigatórios</Text>
-                </View>
+          <View style={styles.header}>
+            <Text style={styles.title}>É grátis, fácil e rápido</Text>
+            <Text style={styles.subtitle}>Todos os campos são obrigatórios</Text>
+          </View>
 
           {/* Nome */}
           <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>
@@ -164,6 +162,24 @@ export default function Proposta({ navigation }) {
               maxLength={30}
             />
             {errors.nome && <Text style={styles.errorText}>Campo obrigatório</Text>}
+          </View>
+
+          {/* Descrição */}
+          <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>
+            <Text style={styles.label}>Descrição</Text>
+            <TextInput
+              style={[styles.inputMultiline, { color: colors.text }, errors.descricao && styles.inputError]}
+              value={form.descricao}
+              onChangeText={(t) => {
+                setForm({ ...form, descricao: t.slice(0, 150) });
+                if (errors.descricao) setErrors({ ...errors, descricao: false });
+              }}
+              placeholder="Fale sobre seu negócio..."
+              multiline
+              maxLength={150}
+            />
+            <Text style={styles.counter}>{form.descricao.length}/150</Text>
+            {errors.descricao && <Text style={styles.errorText}>Campo obrigatório</Text>}
           </View>
 
           {/* Endereço */}
@@ -383,7 +399,7 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 30,
   },
-   header: {
+  header: {
     paddingHorizontal: 30,
     alignItems: 'center',
   },
@@ -408,11 +424,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 10,
     marginLeft: 18,
-    fontWeight:500,
+    fontWeight: 500,
     marginBottom: -6,
   },
   sectionTitle: {
-    fontWeight:500,
+    fontWeight: 500,
     marginLeft: 16,
     marginBottom: 8,
     color: '#333',
@@ -427,6 +443,7 @@ const styles = StyleSheet.create({
   inputMultiline: {
     borderRadius: 16,
     paddingHorizontal: 18,
+    paddingTop: 14,
     fontSize: 15,
     textAlignVertical: 'top',
     height: 100,
@@ -454,7 +471,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     textAlign: 'center',
-    fontSize:16,
+    fontSize: 16,
     marginTop: 20,
     paddingHorizontal: 22,
     lineHeight: 18,
