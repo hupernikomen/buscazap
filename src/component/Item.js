@@ -105,7 +105,7 @@ const calcularDestaque = () => {
           <View style={styles.left}>
             {item.categoria && (
               <Text style={[styles.categoria, { color: colors.suave }]}>
-                {item.categoria} - {item.endereco?.bairro}
+                {item.categoria}
               </Text>
             )}
 
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 12,
+    marginTop: 8,
   },
   left: { flex: 1 },
   categoria: {

@@ -16,7 +16,6 @@ export const DetalheDoItem = ({ item, colors }) => {
   const isOpen = horarioStatus.isOpen;
   const isLunchBreak = horarioStatus.emIntervalo;
 
-  // Cor apenas no ícone do cadeado
   const lockColor = isOpen ? colors.botao : isLunchBreak ? colors.destaque : '#F44336';
 
   const fazEntrega = item.fazEntrega === true;
@@ -26,11 +25,32 @@ export const DetalheDoItem = ({ item, colors }) => {
 
   const temIntervalo = item.horarios?.intervalo?.global === true;
 
+const abrirNoMaps = () => {
+  if (!item.coordenadas || !item.nome) return;
+
+  const [lat, lng] = item.coordenadas.split(',').map(s => s.trim());
+  const nomeLoja = encodeURIComponent(item.nome.trim());
+  const endereco = item.enderecoCompleto?.formato 
+    ? encodeURIComponent(item.enderecoCompleto.formato.trim())
+    : '';
+
+  // Melhor formato: abre com nome da loja e endereço no marcador
+  const label = endereco ? `${nomeLoja} - ${endereco}` : nomeLoja;
+  const encodedLabel = encodeURIComponent(label);
+
+  const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}&query_place_id=${encodedLabel}`;
+
+  Linking.openURL(url).catch(() => {
+    // Fallback seguro
+    Linking.openURL(`https://www.google.com/maps/@${lat},${lng},18z`);
+  });
+};
+
   return (
     <BottomSheetView style={styles.container}>
       <View style={styles.header}>
         {/* Nome centralizado */}
-        <Text style={[styles.storenome, { color: colors.text, textAlign: 'center' }]}>{item?.nome}</Text>
+        <Text style={[styles.storenome, { color: colors.text }]}>{item?.nome}</Text>
 
         {item?.descricao && (
           <Text style={[styles.descricao, { color: colors.text + 'CC' }]}>
@@ -45,7 +65,6 @@ export const DetalheDoItem = ({ item, colors }) => {
             <Ionicons name={isOpen ? 'lock-open-outline' : 'lock-closed-outline'} size={18} color={lockColor} />
             <Text style={styles.infoText}>{horarioStatus.text}</Text>
           </View>
-
 
           {/* Aberto aos domingos */}
           {temDomingo && (
@@ -82,20 +101,20 @@ export const DetalheDoItem = ({ item, colors }) => {
               <Text style={styles.infoText}>Fazemos entregas</Text>
             </View>
           )}
-
         </View>
       </View>
 
-      {/* Maior espaço antes do endereço */}
+      {/* Espaço antes do endereço */}
       <View style={styles.addressSpacer} />
 
-      {/* Endereço */}
-      {item.endereco?.complemento && (
-        <View style={styles.addressContainer}>
-          <Text style={[styles.endereco, { color: colors.text + 'EE' }]}>
-            {item.endereco?.complemento} - {item?.endereco?.bairro}
+      {/* Endereço clicável */}
+      {item.enderecoCompleto && item.coordenadas && (
+        <Pressable onPress={abrirNoMaps} style={styles.addressContainer}>
+          <Ionicons name="location-outline" size={20} color={colors.primary || '#1A73E8'} />
+          <Text style={styles.endereco}>
+            {item.enderecoCompleto.formato}
           </Text>
-        </View>
+        </Pressable>
       )}
 
       {/* Botão WhatsApp */}
@@ -111,29 +130,27 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 22,
-    paddingTop: 16,
-    paddingBottom: 32,
   },
   header: {
     marginTop: 20,
     marginBottom: 18,
-    alignItems: 'center', // Nome e descrição centralizados
+    alignItems: 'center',
   },
   storenome: {
     fontSize: 28,
     fontWeight: '800',
     letterSpacing: -0.6,
     lineHeight: 34,
+    textAlign: 'center',
   },
   descricao: {
     fontSize: 16.8,
-    marginVertical: 12,
+    marginTop: 12,
     textAlign: 'center',
   },
-  // Bloco centralizado com as informações
   infoBlock: {
     alignItems: 'center',
-    gap: 10, // Distância menor entre os itens
+    gap: 6,
     marginTop: 35,
   },
   infoRow: {
@@ -145,21 +162,24 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#666',
   },
-  // Espaço maior antes do endereço
   addressSpacer: {
-    height: 22,
+    height: 16,
   },
   addressContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
+    justifyContent: 'center',
+    padding: 16,
     borderRadius: 22,
     backgroundColor: '#00000006',
     marginBottom: 22,
+    gap: 10,
   },
   endereco: {
-    flex: 1,
+    fontSize: 15,
     textAlign: 'center',
-    fontSize: 15
+    color: '#666',
+    flex: 1,
   },
   whatsappButton: {
     flexDirection: 'row',

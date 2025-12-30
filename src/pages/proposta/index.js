@@ -23,8 +23,8 @@ export default function Proposta({ navigation }) {
   const [form, setForm] = useState({
     nome: '',
     descricao: '',
-    complemento: '',
-    bairro: '',
+    // complemento: '',
+    // bairro: '',
     whatsapp: '',
     tags: '',
     fazEntrega: false,
@@ -43,8 +43,8 @@ export default function Proposta({ navigation }) {
   const [errors, setErrors] = useState({
     nome: false,
     descricao: false,
-    complemento: false,
-    bairro: false,
+    // complemento: false,
+    // bairro: false,
     whatsapp: false,
     tags: false,
   });
@@ -67,8 +67,8 @@ export default function Proposta({ navigation }) {
     const newErrors = {
       nome: !form.nome.trim(),
       descricao: !form.descricao.trim(),
-      complemento: !form.complemento.trim(),
-      bairro: !form.bairro.trim(),
+      // complemento: !form.complemento.trim(),
+      // bairro: !form.bairro.trim(),
       whatsapp: form.whatsapp.replace(/\D/g, '').length < 11,
       tags: !form.tags.trim(),
     };
@@ -109,10 +109,11 @@ export default function Proposta({ navigation }) {
       await addDoc(collection(db, 'propostas'), {
         nome: form.nome.trim(),
         descricao: form.descricao.trim(),
-        endereco: {
-          complemento: form.complemento.trim(),
-          bairro: form.bairro.trim(),
-        },
+        // endereco: {
+        //   complemento: form.complemento.trim(),
+        //   bairro: form.bairro.trim(),
+        // },
+        coordenadas: '',
         whatsapp: { principal: whatsappNumbers },
         tags: form.tags.split(',').map(t => t.trim().toLowerCase()).filter(Boolean),
         fazEntrega: form.fazEntrega,
@@ -144,7 +145,7 @@ export default function Proposta({ navigation }) {
 
           {/* Título principal */}
           <View style={styles.header}>
-            <Text style={styles.title}>É grátis, fácil e rápido</Text>
+            <Text style={styles.title}>É fácil, rápido e grátis!</Text>
             <Text style={styles.subtitle}>Todos os campos são obrigatórios</Text>
           </View>
 
@@ -183,7 +184,7 @@ export default function Proposta({ navigation }) {
           </View>
 
           {/* Endereço */}
-          <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>
+          {/* <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>
             <Text style={styles.label}>Endereço (rua e número)</Text>
             <TextInput
               style={[styles.input, { color: colors.text }, errors.complemento && styles.inputError]}
@@ -195,10 +196,10 @@ export default function Proposta({ navigation }) {
               placeholder="Ex: Av. Joaquim Nelson, 123"
             />
             {errors.complemento && <Text style={styles.errorText}>Campo obrigatório</Text>}
-          </View>
+          </View> */}
 
           {/* Bairro */}
-          <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>
+          {/* <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>
             <Text style={styles.label}>Bairro</Text>
             <TextInput
               style={[styles.input, { color: colors.text }, errors.bairro && styles.inputError]}
@@ -210,7 +211,7 @@ export default function Proposta({ navigation }) {
               placeholder="Ex: Centro"
             />
             {errors.bairro && <Text style={styles.errorText}>Campo obrigatório</Text>}
-          </View>
+          </View> */}
 
           {/* WhatsApp */}
           <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>

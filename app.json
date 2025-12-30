@@ -33,7 +33,16 @@
           "androidAppId": "ca-app-pub-9531253714806304~2525089890",
           "iosAppId": "ca-app-pub-xxxxxxxxxxxxxxxx~xxxxxxxxxx"
         }
-      ]
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "O Busca Zap usa sua localização para mostrar lojas próximas a você.",
+          "locationAlwaysPermission": "O Busca Zap precisa acessar sua localização em segundo plano para funcionalidades avançadas.",
+          "locationWhenInUsePermission": "O Busca Zap usa sua localização para mostrar lojas próximas."
+        }
+      ],
+      "react-native-map-link"
     ],
     "extra": {
       "eas": {

@@ -58,9 +58,7 @@ export default function Home({ navigation }) {
   }, []);
 
   const onAdLoaded = (key) => {
-    if (!__DEV__) {
       setAnunciosCarregados(prev => new Set(prev).add(key));
-    }
   };
 
   const executarBusca = () => {
