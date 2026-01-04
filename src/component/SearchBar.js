@@ -50,7 +50,7 @@ export default function SearchBar({
 
 const styles = StyleSheet.create({
   container: { paddingBottom: 16, paddingTop: 12, paddingHorizontal: 22 },
-  shadow: { elevation: 1, borderBottomLeftRadius: 16, borderBottomRightRadius: 16 },
+  shadow: { elevation: 3, borderBottomLeftRadius: 22, borderBottomRightRadius: 22 },
   bar: { borderRadius: 35, height: 50, flexDirection: 'row', alignItems: 'center', paddingLeft: 22 },
   input: { flex: 1, fontSize: 16, height: 50 },
   button: { width: 45, height: 45, margin: 2, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', borderRadius: 30 },

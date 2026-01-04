@@ -1,4 +1,3 @@
-// src/pages/proposta/PropostaScreen.js
 import React, { useState } from 'react';
 import {
   View,
@@ -11,9 +10,17 @@ import {
   Platform,
   ActivityIndicator,
   Switch,
+  Alert,
 } from 'react-native';
 import { useTheme } from '@react-navigation/native';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+  query,
+  where,
+  getDocs,
+} from 'firebase/firestore';
 import { db } from '../../services/firebaseConnection/firebase';
 
 export default function Proposta({ navigation }) {
@@ -22,12 +29,10 @@ export default function Proposta({ navigation }) {
 
   const [form, setForm] = useState({
     nome: '',
-    descricao: '',
-    // complemento: '',
-    // bairro: '',
     whatsapp: '',
     tags: '',
     fazEntrega: false,
+    abertoSabado: true,
     abertoDomingo: false,
     temIntervaloAlmoco: false,
     semanaAbre: '08:00',
@@ -42,57 +47,111 @@ export default function Proposta({ navigation }) {
 
   const [errors, setErrors] = useState({
     nome: false,
-    descricao: false,
-    // complemento: false,
-    // bairro: false,
     whatsapp: false,
     tags: false,
+    whatsappDuplicado: '', // Agora string para mensagem personalizada
   });
 
   // Máscara WhatsApp
   const formatWhatsApp = (text) => {
     const numbers = text.replace(/\D/g, '');
-    if (numbers.length <= 2) return numbers;
-    if (numbers.length <= 7) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
-    return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
+    const cleaned = numbers.slice(0, 11);
+
+    if (cleaned.length === 0) return '';
+
+    const ddd = cleaned.slice(0, 2);
+    const part1 = cleaned.slice(2, 7);
+    const part2 = cleaned.slice(7, 11);
+
+    if (cleaned.length === 11) {
+      return `(${ddd}) ${part1}-${part2}`;
+    }
+    if (cleaned.length === 10) {
+      const part1Fixo = cleaned.slice(2, 6);
+      const part2Fixo = cleaned.slice(6, 10);
+      return `(${ddd}) ${part1Fixo}-${part2Fixo}`;
+    }
+    if (cleaned.length <= 2) return `(${cleaned}`;
+    if (cleaned.length <= 6) return `(${ddd}) ${cleaned.slice(2)}`;
+    if (cleaned.length <= 10) {
+      const part1Fixo = cleaned.slice(2, 6);
+      const part2Fixo = cleaned.slice(6);
+      return `(${ddd}) ${part1Fixo}-${part2Fixo}`;
+    }
+    return `(${ddd}) ${part1}-${part2}`;
   };
 
   const handleWhatsAppChange = (text) => {
     const formatted = formatWhatsApp(text);
     setForm({ ...form, whatsapp: formatted });
-    if (errors.whatsapp) setErrors({ ...errors, whatsapp: false });
+    // Limpa erros ao digitar novamente
+    if (errors.whatsapp || errors.whatsappDuplicado) {
+      setErrors({ ...errors, whatsapp: false, whatsappDuplicado: '' });
+    }
+  };
+
+  // Verifica se o número existe em uma coleção
+  const existeWhatsappNaColecao = async (colecaoNome, numeroLimpo) => {
+    const ref = collection(db, colecaoNome);
+    const q = query(ref, where('whatsapp.principal', '==', numeroLimpo));
+    const snapshot = await getDocs(q);
+    return !snapshot.empty;
   };
 
   const validateAndSubmit = async () => {
+    const numeroLimpo = form.whatsapp.replace(/\D/g, '');
+
     const newErrors = {
       nome: !form.nome.trim(),
-      descricao: !form.descricao.trim(),
-      // complemento: !form.complemento.trim(),
-      // bairro: !form.bairro.trim(),
-      whatsapp: form.whatsapp.replace(/\D/g, '').length < 11,
+      whatsapp: numeroLimpo.length < 10,
       tags: !form.tags.trim(),
+      whatsappDuplicado: '',
     };
 
-    setErrors(newErrors);
-
-    if (Object.values(newErrors).some(Boolean)) {
+    if (newErrors.nome || newErrors.whatsapp || newErrors.tags) {
+      setErrors(newErrors);
       return;
     }
 
     setLoading(true);
 
     try {
-      const whatsappNumbers = form.whatsapp.replace(/\D/g, '');
+      // 1. Verifica em 'propostas'
+      const existeEmPropostas = await existeWhatsappNaColecao('propostas', numeroLimpo);
 
+      if (existeEmPropostas) {
+        setErrors({
+          ...errors,
+          whatsappDuplicado: 'Você já enviou uma solicitação com este número. Aguarde nossa análise.',
+        });
+        setLoading(false);
+        return;
+      }
+
+      // 2. Verifica em 'users'
+      const existeEmUsers = await existeWhatsappNaColecao('users', numeroLimpo);
+
+      if (existeEmUsers) {
+        setErrors({
+          ...errors,
+          whatsappDuplicado: 'Este número já possui um anúncio ativo no app.',
+        });
+        setLoading(false);
+        return;
+      }
+
+      // 3. Tudo OK → envia a proposta
       const horarios = {
         semana: {
           abre: form.semanaAbre.trim(),
           fecha: form.semanaFecha.trim(),
         },
-        sabado: {
-          abre: form.sabadoAbre.trim(),
-          fecha: form.sabadoFecha.trim(),
-        },
+        ...(form.abertoSabado && {
+          sabado: {
+            abre: form.sabadoAbre.trim(),
+            fecha: form.sabadoFecha.trim(),
+          },
+        }),
         ...(form.abertoDomingo && {
           domingo: {
             abre: form.domingoAbre.trim(),
@@ -108,15 +167,11 @@ export default function Proposta({ navigation }) {
 
       await addDoc(collection(db, 'propostas'), {
         nome: form.nome.trim(),
-        descricao: form.descricao.trim(),
-        // endereco: {
-        //   complemento: form.complemento.trim(),
-        //   bairro: form.bairro.trim(),
-        // },
-        coordenadas: '',
-        whatsapp: { principal: whatsappNumbers },
+        whatsapp: { principal: numeroLimpo },
         tags: form.tags.split(',').map(t => t.trim().toLowerCase()).filter(Boolean),
         fazEntrega: form.fazEntrega,
+        bairro: '',
+        categoria: '',
         horarios,
         criadoEm: serverTimestamp(),
         anuncio: {
@@ -127,9 +182,14 @@ export default function Proposta({ navigation }) {
         status: false,
       });
 
-      navigation.goBack();
+      Alert.alert(
+        'Solicitação enviada!',
+        'Obrigado! Analisaremos seu cadastro e entraremos em contato em até 24h.',
+        [{ text: 'OK', onPress: () => navigation.goBack() }]
+      );
     } catch (error) {
       console.error('Erro ao enviar proposta:', error);
+      Alert.alert('Erro', 'Não foi possível enviar sua solicitação. Tente novamente mais tarde.');
     } finally {
       setLoading(false);
     }
@@ -142,8 +202,6 @@ export default function Proposta({ navigation }) {
     >
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.card}>
-
-          {/* Título principal */}
           <View style={styles.header}>
             <Text style={styles.title}>É fácil, rápido e grátis!</Text>
             <Text style={styles.subtitle}>Todos os campos são obrigatórios</Text>
@@ -165,59 +223,15 @@ export default function Proposta({ navigation }) {
             {errors.nome && <Text style={styles.errorText}>Campo obrigatório</Text>}
           </View>
 
-          {/* Descrição */}
-          <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>
-            <Text style={styles.label}>Descrição</Text>
-            <TextInput
-              style={[styles.inputMultiline, { color: colors.text }, errors.descricao && styles.inputError]}
-              value={form.descricao}
-              onChangeText={(t) => {
-                setForm({ ...form, descricao: t.slice(0, 150) });
-                if (errors.descricao) setErrors({ ...errors, descricao: false });
-              }}
-              placeholder="Fale sobre seu negócio..."
-              multiline
-              maxLength={150}
-            />
-            <Text style={styles.counter}>{form.descricao.length}/150</Text>
-            {errors.descricao && <Text style={styles.errorText}>Campo obrigatório</Text>}
-          </View>
-
-          {/* Endereço */}
-          {/* <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>
-            <Text style={styles.label}>Endereço (rua e número)</Text>
-            <TextInput
-              style={[styles.input, { color: colors.text }, errors.complemento && styles.inputError]}
-              value={form.complemento}
-              onChangeText={(t) => {
-                setForm({ ...form, complemento: t });
-                if (errors.complemento) setErrors({ ...errors, complemento: false });
-              }}
-              placeholder="Ex: Av. Joaquim Nelson, 123"
-            />
-            {errors.complemento && <Text style={styles.errorText}>Campo obrigatório</Text>}
-          </View> */}
-
-          {/* Bairro */}
-          {/* <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>
-            <Text style={styles.label}>Bairro</Text>
-            <TextInput
-              style={[styles.input, { color: colors.text }, errors.bairro && styles.inputError]}
-              value={form.bairro}
-              onChangeText={(t) => {
-                setForm({ ...form, bairro: t });
-                if (errors.bairro) setErrors({ ...errors, bairro: false });
-              }}
-              placeholder="Ex: Centro"
-            />
-            {errors.bairro && <Text style={styles.errorText}>Campo obrigatório</Text>}
-          </View> */}
-
           {/* WhatsApp */}
           <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>
             <Text style={styles.label}>WhatsApp (com DDD)</Text>
             <TextInput
-              style={[styles.input, { color: colors.text }, errors.whatsapp && styles.inputError]}
+              style={[
+                styles.input,
+                { color: colors.text },
+                (errors.whatsapp || errors.whatsappDuplicado) && styles.inputError,
+              ]}
               value={form.whatsapp}
               onChangeText={handleWhatsAppChange}
               placeholder="(86) 99999-9999"
@@ -225,26 +239,15 @@ export default function Proposta({ navigation }) {
               maxLength={15}
             />
             {errors.whatsapp && <Text style={styles.errorText}>WhatsApp inválido</Text>}
-          </View>
-
-          {/* Faz entregas? */}
-          <View style={{ backgroundColor: colors.card, borderRadius: 16, paddingVertical: 8 }}>
-            <View style={styles.switchRow}>
-              <Text style={styles.switchLabel}>Faz entregas?</Text>
-              <Switch
-                value={form.fazEntrega}
-                onValueChange={(value) => setForm({ ...form, fazEntrega: value })}
-                trackColor={{ false: '#767577', true: colors.botao }}
-                thumbColor={form.fazEntrega ? '#fff' : '#f4f3f4'}
-              />
-            </View>
+            {errors.whatsappDuplicado && (
+              <Text style={styles.errorText}>{errors.whatsappDuplicado}</Text>
+            )}
           </View>
 
           {/* Horários de Funcionamento */}
           <View style={{ backgroundColor: colors.card, borderRadius: 16, paddingVertical: 12 }}>
             <Text style={[styles.sectionTitle]}>Horários</Text>
 
-            {/* Segunda a Sexta */}
             <View style={styles.horarioRow}>
               <Text style={styles.horarioDia}>Segunda a Sexta</Text>
               <TextInput
@@ -266,29 +269,39 @@ export default function Proposta({ navigation }) {
               />
             </View>
 
-            {/* Sábado */}
-            <View style={styles.horarioRow}>
-              <Text style={styles.horarioDia}>Sábado</Text>
-              <TextInput
-                style={styles.horarioInput}
-                value={form.sabadoAbre}
-                onChangeText={(t) => setForm({ ...form, sabadoAbre: t })}
-                placeholder="08:00"
-                keyboardType="numbers-and-punctuation"
-                maxLength={5}
-              />
-              <Text style={styles.horarioSeparator}>às</Text>
-              <TextInput
-                style={styles.horarioInput}
-                value={form.sabadoFecha}
-                onChangeText={(t) => setForm({ ...form, sabadoFecha: t })}
-                placeholder="13:00"
-                keyboardType="numbers-and-punctuation"
-                maxLength={5}
+            <View style={styles.switchRow}>
+              <Text style={styles.switchLabel}>Aberto aos sábados?</Text>
+              <Switch
+                value={form.abertoSabado}
+                onValueChange={(value) => setForm({ ...form, abertoSabado: value })}
+                trackColor={{ false: '#767577', true: colors.botao }}
+                thumbColor={form.abertoSabado ? '#fff' : '#f4f3f4'}
               />
             </View>
 
-            {/* Domingo */}
+            {form.abertoSabado && (
+              <View style={styles.horarioRow}>
+                <Text style={styles.horarioDia}>Sábado</Text>
+                <TextInput
+                  style={styles.horarioInput}
+                  value={form.sabadoAbre}
+                  onChangeText={(t) => setForm({ ...form, sabadoAbre: t })}
+                  placeholder="08:00"
+                  keyboardType="numbers-and-punctuation"
+                  maxLength={5}
+                />
+                <Text style={styles.horarioSeparator}>às</Text>
+                <TextInput
+                  style={styles.horarioInput}
+                  value={form.sabadoFecha}
+                  onChangeText={(t) => setForm({ ...form, sabadoFecha: t })}
+                  placeholder="13:00"
+                  keyboardType="numbers-and-punctuation"
+                  maxLength={5}
+                />
+              </View>
+            )}
+
             <View style={styles.switchRow}>
               <Text style={styles.switchLabel}>Aberto aos domingos?</Text>
               <Switch
@@ -322,7 +335,6 @@ export default function Proposta({ navigation }) {
               </View>
             )}
 
-            {/* Intervalo de Almoço */}
             <View style={styles.switchRow}>
               <Text style={styles.switchLabel}>Possui intervalo de almoço?</Text>
               <Switch
@@ -357,6 +369,19 @@ export default function Proposta({ navigation }) {
             )}
           </View>
 
+          {/* Faz entregas? */}
+          <View style={{ backgroundColor: colors.card, borderRadius: 16, paddingVertical: 8 }}>
+            <View style={styles.switchRow}>
+              <Text style={styles.switchLabel}>Faz entregas?</Text>
+              <Switch
+                value={form.fazEntrega}
+                onValueChange={(value) => setForm({ ...form, fazEntrega: value })}
+                trackColor={{ false: '#767577', true: colors.botao }}
+                thumbColor={form.fazEntrega ? '#fff' : '#f4f3f4'}
+              />
+            </View>
+          </View>
+
           {/* Palavras-chave */}
           <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>
             <Text style={styles.label}>Palavras-chave (separadas por vírgula)</Text>
@@ -388,7 +413,6 @@ export default function Proposta({ navigation }) {
               <Text style={styles.buttonText}>Enviar Solicitação</Text>
             )}
           </Pressable>
-
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -454,13 +478,6 @@ const styles = StyleSheet.create({
   inputError: {
     borderColor: '#F44336',
     borderWidth: 1,
-  },
-  counter: {
-    fontSize: 12,
-    color: '#666',
-    textAlign: 'right',
-    paddingHorizontal: 18,
-    marginTop: 4,
   },
   errorText: {
     fontSize: 13,

@@ -14,24 +14,24 @@ const PREPOSICOES = new Set([
 ]);
 
 
-export const Item = ({ item, index, results, onPress, colors, searchQuery }) => {
-const ITENS_FIXOS_POR_CLIQUES = 3;
+export const Item = ({ item, index, results, onPress, colors, searchQuery, ITENS_FIXOS_NO_TOPO }) => {
+  // const ITENS_FIXOS_NO_TOPO = 3;
 
-const calcularDestaque = () => {
-  // Não mostra ícone para premium
-  if (item?.anuncio?.premium) return false;
+  const calcularDestaque = () => {
+    // Não mostra ícone para premium
+    if (item?.anuncio?.premium) return false;
 
-  if (!Array.isArray(results)) return false;
+    if (!Array.isArray(results)) return false;
 
-  // Conta quantos itens normais com cliques estão antes dele
-  const itensAntes = results.slice(0, index);
-  const podiumAntes = itensAntes.filter(
-    i => !i?.anuncio?.premium && (i.clicks || 0) > 0
-  ).length;
+    // Conta quantos itens normais com cliques estão antes dele
+    const itensAntes = results.slice(0, index);
+    const podiumAntes = itensAntes.filter(
+      i => !i?.anuncio?.premium && (i.clicks || 0) > 0
+    ).length;
 
-  // Só mostra o ícone se estiver entre os top 3 por cliques
-  return (item.clicks || 0) > 0 && podiumAntes < ITENS_FIXOS_POR_CLIQUES;
-};
+    // Só mostra o ícone se estiver entre os top 3 por cliques
+    return (item.clicks || 0) > 0 && podiumAntes < ITENS_FIXOS_NO_TOPO;
+  };
 
   const isPremium = item?.anuncio?.premium === true;
   const isBusca = item?.anuncio?.busca === true;
@@ -44,6 +44,7 @@ const calcularDestaque = () => {
         : colors.primary;
 
   const horarioStatus = getHorarioStatus(item.horarios);
+
 
   // === TAGS RELEVANTES + PALAVRAS NÃO ENCONTRADAS (sem preposições) ===
   const buscaInfo = React.useMemo(() => {
@@ -85,29 +86,40 @@ const calcularDestaque = () => {
       style={styles.container}
     >
       <View style={styles.content}>
-        <View style={{flexDirection:'row',alignItems:'center', gap:10}}>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10, justifyContent: "space-between" }}>
+          <View>
 
-          <Text style={[styles.nome, { color: nomeCor }]} numberOfLines={1}>
-            {item.nome}
-          </Text>
+            {calcularDestaque() && <Text style={{color:colors.destaque, fontWeight:500}}>Destaque</Text>}
+            <Text style={[styles.nome, { color: nomeCor }]} numberOfLines={1}>
+              {item.nome}
+            </Text>
+          </View>
           {calcularDestaque() && (
-            <Ionicons name="podium-outline" size={12} color={colors.text} />
+            <Ionicons name="ribbon-outline" size={16} color={colors.text} />
           )}
 
         </View>
+
         {item.descricao ? (
           <Text style={[styles.descricao, { color: colors.text + 'B3' }]} numberOfLines={3}>
             {item.descricao}
           </Text>
         ) : null}
 
+
+
+
+
         <View style={styles.footer}>
+
           <View style={styles.left}>
-            {item.categoria && (
-              <Text style={[styles.categoria, { color: colors.suave }]}>
-                {item.categoria}
-              </Text>
-            )}
+
+            {/* Status aberto/fechado */}
+            <View style={styles.infoRow}>
+              {/* <Ionicons name={horarioStatus?.isOpen ? 'lock-open-outline' : 'lock-closed-outline'} size={11} color={horarioStatus?.isOpen ? 'green':'red'} /> */}
+              <Text style={[styles.infoText, { color: colors.suave }]}>{horarioStatus.text} - {item?.bairro}</Text>
+            </View>
+
 
             {/* Tags relevantes + palavras não encontradas (sem preposições) */}
             {buscaInfo && (
@@ -153,16 +165,27 @@ const styles = StyleSheet.create({
   },
   descricao: {
     fontSize: 15,
+    marginBottom: 6,
   },
   footer: {
     flexDirection: 'row',
+    alignItems: "flex-end",
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 8,
+    marginTop: 4,
   },
   left: { flex: 1 },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: 'center',
+    gap: 6
+  },
   categoria: {
-    fontSize: 10,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 0.35,
+  },
+  infoText: {
+    fontSize: 11,
     textTransform: 'uppercase',
     letterSpacing: 0.35,
   },

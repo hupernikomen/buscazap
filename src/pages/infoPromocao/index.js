@@ -19,25 +19,25 @@ export default function InfoPromocao({ navigation }) {
     <ScrollView showsVerticalScrollIndicator={false} style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Título principal */}
       <View style={styles.header}>
-        <Text style={styles.title}>Coloque sua loja no topo</Text>
+        <Text style={styles.title}>Coloque seu anúncio no topo</Text>
         <Text style={styles.subtitle}>e receba mais mensagens no WhatsApp todos os dias</Text>
       </View>
 
       {/* Exemplo do anúncio destacado */}
-      <View style={styles.exampleContainer}>
+      {/* <View style={styles.exampleContainer}>
         <Text style={styles.exampleTitle}>Veja como seu anúncio ficará em destaque</Text>
         <Image 
           source={{ uri: EXEMPLO_ANUNCIO }} 
           style={styles.exampleImage} 
           resizeMode="contain" 
         />
-      </View>
+      </View> */}
 
       {/* Introdução */}
       <View style={styles.introContainer}>
         <Text style={styles.introText}>
-          O Busca Zap é usado por centenas de pessoas todos os dias em Teresina para encontrar lojas e serviços e falar direto no WhatsApp. 
-          Com um plano de destaque, seu anuncio aparece primeiro — aumentando muito suas chances de contato com clientes.
+          {`O Busca Zap é usado por centenas de pessoas todos os dias em Teresina para encontrar produtos e serviços e falar direto no seu WhatsApp. 
+          Com um plano de destaque, seu anuncio aparece primeiro — aumentando muito suas chances de contato com clientes.`}
         </Text>
       </View>
 
@@ -48,7 +48,7 @@ export default function InfoPromocao({ navigation }) {
         <Text style={styles.planPrice}>R$ 9,90 por 30 dias</Text>
 
         <Text style={styles.planDescription}>
-          Seu anúncio fica sempre visível no topo da tela inicial do app, junto com no máximo outros 3 lojistas.
+          Seu anúncio fica sempre visível no topo da tela inicial do app.
         </Text>
 
         <Text style={styles.planHighlight}>
@@ -74,7 +74,7 @@ export default function InfoPromocao({ navigation }) {
         </Text>
 
         <Text style={styles.planHighlight}>
-          Ideal para quem quer receber mensagens de clientes já prontos para comprar.
+          Ideal para quem quer receber mensagens de clientes já prontos para negociar.
         </Text>
 
         <Pressable 
@@ -94,7 +94,7 @@ export default function InfoPromocao({ navigation }) {
           • Suporte direto por WhatsApp
         </Text>
         <Text style={styles.footerCall}>
-          Comece hoje e veja o WhatsApp da sua loja tocar mais!
+          Comece hoje e veja o seu WhatsApp tocar mais!
         </Text>
       </View>
 
@@ -182,9 +182,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   planPrice: {
-    fontSize: 26,
-    fontWeight: '900',
-    color: '#2e8b57',
+    fontSize: 18,
+    fontWeight: '500',
     marginBottom: 20,
   },
   planDescription: {

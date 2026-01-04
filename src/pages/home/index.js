@@ -29,12 +29,12 @@ import Carregamentos from '../../hooks/carregamentos';
 MobileAds().initialize();
 
 const INTERVALO_ANUNCIO = 7;
+const ITENS_ATE_PRIMEIRO_ANUNCIO = 4; // Primeiro anúncio após 4 itens
 
 export default function Home({ navigation }) {
   const [termoBusca, setTermoBusca] = useState('');
   const [itensMenu, setItensMenu] = useState([]);
   const [buscaExecutada, setBuscaExecutada] = useState(false);
-  const [anunciosCarregados, setAnunciosCarregados] = useState(new Set());
   const [showSearchShadow, setShowSearchShadow] = useState(false);
   const [itemSelecionado, setItemSelecionado] = useState(null);
 
@@ -49,17 +49,16 @@ export default function Home({ navigation }) {
     executarBusca: executarBuscaHook,
     voltarParaListaInicial,
     recarregar,
+    ITENS_FIXOS_NO_TOPO,
   } = Carregamentos();
 
   // Carrega menu horizontal
   useEffect(() => {
-    const itensMenu = carregarItensMenu(setItensMenu);
-    return () => itensMenu();
+    const unsubscribe = carregarItensMenu(setItensMenu);
+    return () => unsubscribe && unsubscribe();
   }, []);
 
-  const onAdLoaded = (key) => {
-      setAnunciosCarregados(prev => new Set(prev).add(key));
-  };
+
 
   const executarBusca = () => {
     if (termoBusca.trim()) {
@@ -74,21 +73,16 @@ export default function Home({ navigation }) {
     voltarParaListaInicial();
   };
 
-const handleChangeText = (texto) => {
-  setTermoBusca(texto);
+  const handleChangeText = (texto) => {
+    setTermoBusca(texto);
 
-  // Se o campo ficou completamente vazio
-  if (texto.trim() === '') {
-    // Força o reset completo: estado + recarrega lista inicial
-    setBuscaExecutada(false);
-    voltarParaListaInicial(); // Chama o hook para recarregar a lista completa
-  } else {
-    // Se tinha texto e estava em modo busca, reseta apenas o flag (para permitir nova busca)
-    if (buscaExecutada) {
+    if (texto.trim() === '') {
+      setBuscaExecutada(false);
+      voltarParaListaInicial();
+    } else if (buscaExecutada) {
       setBuscaExecutada(false);
     }
-  }
-};
+  };
 
   const handleScroll = (event) => {
     const scrollY = event.nativeEvent.contentOffset.y;
@@ -99,7 +93,7 @@ const handleChangeText = (texto) => {
     const cabecalho = [
       { type: 'logo' },
       { type: 'search' },
-      itensMenu.length > 0 ? { type: 'menu_horizontal' } : null,
+      !termoBusca.trim() && itensMenu.length > 0 ? { type: 'menu_horizontal' } : null,
     ].filter(Boolean);
 
     if (termoBusca.trim() && !buscaExecutada) return cabecalho;
@@ -112,27 +106,26 @@ const handleChangeText = (texto) => {
     const itensComAnuncios = [];
     let contadorItensDepoisDoPrimeiroAnuncio = 0;
     let primeiroAnuncioInserido = false;
-    const ITENS_FIXOS_POR_CLIQUES = 3; // pode ser movido para constante global depois
 
     resultados.forEach((item, indice) => {
-      if (!primeiroAnuncioInserido && indice === ITENS_FIXOS_POR_CLIQUES) {
-        const keyPrimeiro = 'ad-primeiro';
-        if (__DEV__ || anunciosCarregados.has(keyPrimeiro)) {
-          itensComAnuncios.push({ type: 'ad', key: keyPrimeiro });
-        }
+      // Primeiro anúncio após 4 itens — sempre insere o slot
+      if (!primeiroAnuncioInserido && indice === ITENS_ATE_PRIMEIRO_ANUNCIO) {
+        itensComAnuncios.push({ type: 'ad', key: 'ad-primeiro' });
         primeiroAnuncioInserido = true;
       }
 
+      // Anúncios subsequentes a cada 7 itens
       if (primeiroAnuncioInserido) {
         contadorItensDepoisDoPrimeiroAnuncio++;
-        if (contadorItensDepoisDoPrimeiroAnuncio % INTERVALO_ANUNCIO === 0 && indice < resultados.length - 1) {
-          const keyAd = `ad-${indice}`;
-          if (__DEV__ || anunciosCarregados.has(keyAd)) {
-            itensComAnuncios.push({ type: 'ad', key: keyAd });
-          }
+        if (
+          contadorItensDepoisDoPrimeiroAnuncio % INTERVALO_ANUNCIO === 0 &&
+          indice < resultados.length - 1
+        ) {
+          itensComAnuncios.push({ type: 'ad', key: `ad-${indice}` });
         }
       }
 
+      // Item da loja
       itensComAnuncios.push({
         type: 'store',
         item,
@@ -142,7 +135,7 @@ const handleChangeText = (texto) => {
     });
 
     return [...cabecalho, ...itensComAnuncios];
-  }, [resultados, itensMenu, termoBusca, buscaExecutada, carregando, anunciosCarregados]);
+  }, [resultados, itensMenu, termoBusca, buscaExecutada, carregando]); // Removido anunciosCarregados da dependência
 
   const renderizarItem = ({ item }) => {
     switch (item.type) {
@@ -165,7 +158,7 @@ const handleChangeText = (texto) => {
       case 'menu_horizontal':
         return <MenuHorizontal itensMenu={itensMenu} colors={colors} navigation={navigation} />;
       case 'ad':
-        return <AdBanner adKey={item.key} onAdLoaded={onAdLoaded} />;
+        return <AdBanner adKey={item.key}  />;
       case 'no_results':
         return <SemResultado colors={colors} query={item.query} />;
       case 'store':
@@ -180,6 +173,7 @@ const handleChangeText = (texto) => {
               modalRef.current?.present();
             }}
             colors={colors}
+            ITENS_FIXOS_NO_TOPO={ITENS_FIXOS_NO_TOPO}
           />
         );
       default:
@@ -218,7 +212,9 @@ const handleChangeText = (texto) => {
           scrollEventThrottle={16}
           removeClippedSubviews={false}
           ItemSeparatorComponent={({ leadingItem }) => {
-            if (!leadingItem || ['logo', 'search', 'menu_horizontal', 'ad', 'no_results'].includes(leadingItem.type)) return null;
+            if (!leadingItem || ['logo', 'search', 'menu_horizontal', 'ad', 'no_results'].includes(leadingItem.type)) {
+              return null;
+            }
             return <View style={{ borderBottomWidth: 0.5, borderBottomColor: colors.border }} />;
           }}
           ListFooterComponent={
@@ -236,13 +232,18 @@ const handleChangeText = (texto) => {
       <BottomSheetModal
         ref={modalRef}
         index={1}
-        snapPoints={['65%','90%']}
+        snapPoints={['85%']}
         onCloseEnd={fecharModal}
         onDismiss={fecharModal}
         enablePanDownToClose={true}
         backgroundStyle={{ backgroundColor: colors.background }}
         backdropComponent={({ style, ...props }) => (
-          <Pressable {...props} style={[style, { backgroundColor: '#000000', opacity: 0.5 }]} pointerEvents="auto" onPress={()=> modalRef.current?.close()} />
+          <Pressable
+            {...props}
+            style={[style, { backgroundColor: '#000000', opacity: 0.5 }]}
+            pointerEvents="auto"
+            onPress={() => modalRef.current?.close()}
+          />
         )}
       >
         {itemSelecionado && <DetalheDoItem item={itemSelecionado} colors={colors} onClose={fecharModal} />}

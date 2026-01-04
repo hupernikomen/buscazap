@@ -5,6 +5,8 @@ import { getHorarioStatus } from '../utils/carregaHorarios';
 import { Ionicons } from '@expo/vector-icons';
 import { incrementClicks } from '../services/firebaseConnection/firestoreService';
 
+const hojeIndex = new Date().getDay(); // 0 = Domingo, 6 = Sábado
+
 export const DetalheDoItem = ({ item, colors }) => {
   const horarioStatus = getHorarioStatus(item.horarios);
 
@@ -16,111 +18,118 @@ export const DetalheDoItem = ({ item, colors }) => {
   const isOpen = horarioStatus.isOpen;
   const isLunchBreak = horarioStatus.emIntervalo;
 
-  const lockColor = isOpen ? colors.botao : isLunchBreak ? colors.destaque : '#F44336';
+  // Cores suaves para o status
+  const statusColor = isOpen 
+    ? '#1A73E8'      // Azul suave (aberto)
+    : isLunchBreak 
+      ? '#FF9800'   // Laranja suave (em intervalo)
+      : '#666666';  // Cinza neutro (fechado)
 
-  const fazEntrega = item.fazEntrega === true;
-  const temDomingo = item.horarios?.domingo &&
-    item.horarios.domingo.abre &&
-    item.horarios.domingo.fecha;
-
+  const temSabado = !!item.horarios?.sabado;
+  const temDomingo = !!item.horarios?.domingo;
   const temIntervalo = item.horarios?.intervalo?.global === true;
-
-const abrirNoMaps = () => {
-  if (!item.coordenadas || !item.nome) return;
-
-  const [lat, lng] = item.coordenadas.split(',').map(s => s.trim());
-  const nomeLoja = encodeURIComponent(item.nome.trim());
-  const endereco = item.enderecoCompleto?.formato 
-    ? encodeURIComponent(item.enderecoCompleto.formato.trim())
-    : '';
-
-  // Melhor formato: abre com nome da loja e endereço no marcador
-  const label = endereco ? `${nomeLoja} - ${endereco}` : nomeLoja;
-  const encodedLabel = encodeURIComponent(label);
-
-  const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}&query_place_id=${encodedLabel}`;
-
-  Linking.openURL(url).catch(() => {
-    // Fallback seguro
-    Linking.openURL(`https://www.google.com/maps/@${lat},${lng},18z`);
-  });
-};
+  const fazEntrega = item.fazEntrega === true;
+  const temDescricao = !!item.descricao?.trim();
 
   return (
     <BottomSheetView style={styles.container}>
+      {/* Cabeçalho: Nome, descrição e status atual */}
       <View style={styles.header}>
-        {/* Nome centralizado */}
-        <Text style={[styles.storenome, { color: colors.text }]}>{item?.nome}</Text>
+        <Text style={[styles.nomeLoja, { color: colors.text }]}>{item?.nome}</Text>
 
-        {item?.descricao && (
-          <Text style={[styles.descricao, { color: colors.text + 'CC' }]}>
-            {item?.descricao}
-          </Text>
+        {/* Descrição (se existir) */}
+        {temDescricao && (
+          <Text style={styles.descricaoLoja}>{item.descricao.trim()}</Text>
         )}
 
-        {/* Bloco de informações centralizadas */}
-        <View style={styles.infoBlock}>
-          {/* Status aberto/fechado */}
-          <View style={styles.infoRow}>
-            <Ionicons name={isOpen ? 'lock-open-outline' : 'lock-closed-outline'} size={18} color={lockColor} />
-            <Text style={styles.infoText}>{horarioStatus.text}</Text>
-          </View>
-
-          {/* Aberto aos domingos */}
-          {temDomingo && (
-            <View style={styles.infoRow}>
-              <Ionicons name="calendar-outline" size={16} color={colors.text + '90'} />
-              <Text style={styles.infoText}>Aberto aos domingos</Text>
-            </View>
-          )}
-
-          {/* Intervalo de almoço */}
-          {temIntervalo && (
-            <View style={styles.infoRow}>
-              <Ionicons name="hourglass-outline" size={16} color={colors.text + '90'} />
-              <Text style={styles.infoText}>
-                {isLunchBreak
-                  ? `Voltamos às ${item.horarios.intervalo.retorno}`
-                  : `Intervalo: ${item.horarios.intervalo.inicio} – ${item.horarios.intervalo.retorno}`}
-              </Text>
-            </View>
-          )}
-
-          {/* Sem intervalo */}
-          {item.horarios?.intervalo?.global === false && (
-            <View style={styles.infoRow}>
-              <Ionicons name="time-outline" size={16} color={colors.text + '90'} />
-              <Text style={styles.infoText}>Não fechamos para almoço</Text>
-            </View>
-          )}
-
-          {/* Faz entregas */}
-          {fazEntrega && (
-            <View style={styles.infoRow}>
-              <Ionicons name="bicycle-outline" size={16} color={colors.text + '90'} />
-              <Text style={styles.infoText}>Fazemos entregas</Text>
-            </View>
-          )}
+        {/* Status atual */}
+        <View style={styles.statusPrincipal}>
+          <Ionicons
+            name={isOpen ? 'lock-open-outline' : 'lock-closed-outline'}
+            size={16}
+            color={statusColor}
+          />
+          <Text style={[styles.statusTexto, { color: statusColor }]}>
+            {horarioStatus.text}
+          </Text>
         </View>
       </View>
 
-      {/* Espaço antes do endereço */}
-      <View style={styles.addressSpacer} />
+      {/* Seção de Horários */}
+      <View style={styles.secaoHorarios}>
+        <Text style={styles.tituloSecao}>Horários de funcionamento</Text>
 
-      {/* Endereço clicável */}
-      {item.enderecoCompleto && item.coordenadas && (
-        <Pressable onPress={abrirNoMaps} style={styles.addressContainer}>
-          <Ionicons name="location-outline" size={20} color={colors.primary || '#1A73E8'} />
-          <Text style={styles.endereco}>
-            {item.enderecoCompleto.formato}
+        {/* Segunda a Sexta */}
+        <View style={styles.linhaHorario}>
+          <Text style={[
+            styles.diaSemana,
+            (hojeIndex >= 1 && hojeIndex <= 5) && styles.diaHoje
+          ]}>
+            Segunda–Sexta
           </Text>
-        </Pressable>
+          <Text style={styles.horario}>
+            {item.horarios.semana.abre} – {item.horarios.semana.fecha}
+          </Text>
+        </View>
+
+        {/* Intervalo diário */}
+        {temIntervalo && (
+          <View style={styles.linhaHorario}>
+            <Text style={styles.diaSemana}>Intervalo diário</Text>
+            <Text style={styles.horario}>
+              {item.horarios.intervalo.inicio} – {item.horarios.intervalo.retorno}
+            </Text>
+          </View>
+        )}
+
+        {/* Sábado */}
+        {temSabado && (
+          <View style={styles.linhaHorario}>
+            <Text style={[styles.diaSemana, hojeIndex === 6 && styles.diaHoje]}>
+              Sábado
+            </Text>
+            <Text style={styles.horario}>
+              {item.horarios.sabado.abre} – {item.horarios.sabado.fecha}
+            </Text>
+          </View>
+        )}
+
+        {/* Domingo */}
+        {temDomingo && (
+          <View style={styles.linhaHorario}>
+            <Text style={[styles.diaSemana, hojeIndex === 0 && styles.diaHoje]}>
+              Domingo
+            </Text>
+            <Text style={styles.horario}>
+              {item.horarios.domingo.abre} – {item.horarios.domingo.fecha}
+            </Text>
+          </View>
+        )}
+
+        {/* Fim de semana fechado */}
+        {!temSabado && !temDomingo && (
+          <View style={styles.linhaHorario}>
+            <Text style={styles.diaSemana}>Sábado e domingo</Text>
+            <Text style={styles.horarioFechado}>Fechado</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Faz entregas (opcional) */}
+      {fazEntrega && (
+        <View style={styles.secaoExtra}>
+          <Ionicons name="bicycle-outline" size={18} color={colors.text} />
+          <Text style={styles.textoExtra}>Fazemos entregas</Text>
+        </View>
       )}
 
-      {/* Botão WhatsApp */}
-      <Pressable onPress={handleWhatsApp} style={[styles.whatsappButton, { backgroundColor: colors.botao }]}>
-        <Ionicons name="logo-whatsapp" size={28} color="#fff" />
-        <Text style={styles.whatsappText}>WhatsApp</Text>
+      {/* Botão WhatsApp simplificado */}
+      <Pressable
+        onPress={handleWhatsApp}
+        style={[styles.botaoWhatsApp, { backgroundColor: colors.botao }]}
+      >
+        <Ionicons name="logo-whatsapp" size={26} color="#fff" />
+        <Text style={styles.textoBotao}>WhatsApp</Text>
       </Pressable>
     </BottomSheetView>
   );
@@ -129,71 +138,106 @@ const abrirNoMaps = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 22,
+    paddingHorizontal: 24,
+    paddingBottom: 50,
   },
   header: {
-    marginTop: 20,
-    marginBottom: 18,
     alignItems: 'center',
-  },
-  storenome: {
-    fontSize: 28,
-    fontWeight: '800',
-    letterSpacing: -0.6,
-    lineHeight: 34,
-    textAlign: 'center',
-  },
-  descricao: {
-    fontSize: 16.8,
-    marginTop: 12,
-    textAlign: 'center',
-  },
-  infoBlock: {
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 35,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  infoText: {
-    fontSize: 15,
-    color: '#666',
-  },
-  addressSpacer: {
-    height: 16,
-  },
-  addressContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    borderRadius: 22,
-    backgroundColor: '#00000006',
-    marginBottom: 22,
-    gap: 10,
-  },
-  endereco: {
-    fontSize: 15,
-    textAlign: 'center',
-    color: '#666',
-    flex: 1,
-  },
-  whatsappButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 16,
     paddingVertical: 20,
-    borderRadius: 22,
-    marginTop: 'auto',
-    elevation: 14,
   },
-  whatsappText: {
-    color: '#fff',
-    fontSize: 18.5,
+  nomeLoja: {
+    fontSize: 28,
     fontWeight: '700',
+    textAlign: 'center',
+    letterSpacing: -0.4,
+  },
+  descricaoLoja: {
+    fontSize: 16,
+    color: '#555',
+    textAlign: 'center',
+    marginVertical: 12,
+    marginHorizontal: 20,
+    lineHeight: 22,
+    fontWeight: '400',
+  },
+  statusPrincipal: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 18,
+  },
+  statusTexto: {
+    fontWeight: '800',
+    textTransform:'uppercase'
+  },
+  secaoHorarios: {
+    backgroundColor: '#f9f9f9',
+    borderRadius: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    marginBottom: 24,
+  },
+  tituloSecao: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 12,
+  },
+  linhaHorario: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 11,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#e5e5e5',
+  },
+  diaSemana: {
+    fontSize: 15.5,
+    color: '#333',
+    fontWeight: '400',
+  },
+  diaHoje: {
+    fontWeight: '600',
+    color: '#1bc75aff',
+  },
+  horario: {
+    fontSize: 15.5,
+    color: '#000',
+    fontWeight: '400',
+  },
+  horarioFechado: {
+    fontSize: 15.5,
+    color: '#666666',
+    fontWeight: '400',
+  },
+  secaoExtra: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 16,
+  },
+  textoExtra: {
+    fontSize: 15.5,
+    color: '#000',
+    fontWeight: '400',
+  },
+  botaoWhatsApp: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 14,
+    paddingVertical: 19,
+    borderRadius: 35,
+    marginTop: 'auto',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+  },
+  textoBotao: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
   },
 });

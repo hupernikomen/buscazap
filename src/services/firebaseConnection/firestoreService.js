@@ -13,7 +13,8 @@ import {
   doc,             // Cria referência para um documento específico
   updateDoc,       // Atualiza campos de um documento
   increment,       // Incrementa um valor numérico de forma atômica (segura para concorrência)
-  getDoc           // Busca os dados de um único documento
+  getDoc,           // Busca os dados de um único documento
+  getDocs
 } from 'firebase/firestore';
 
 // Define o limite máximo de cliques antes de resetar o contador para zero
@@ -90,4 +91,21 @@ export const subscribeToStores = (searchQuery, callback) => {
   return onSnapshot(q, callback, (error) => {
     console.error('Erro no onSnapshot:', error);
   });
+};
+
+export const fetchStoresOnce = async (searchQuery = '') => {
+  const searchNormalized = searchQuery.trim().toLowerCase();
+
+  let q;
+
+  if (searchNormalized === '') {
+    q = query(collection(db, 'users'), orderBy('clicks', 'desc'), limit(500));
+  } else {
+    q = query(collection(db, 'users'));
+  }
+
+  const snapshot = await getDocs(q);
+  return snapshot.docs
+    .map(doc => ({ id: doc.id, ...doc.data() }))
+    .filter(item => item?.anuncio?.postagem === true);
 };
