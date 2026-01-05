@@ -9,78 +9,92 @@ const hojeIndex = new Date().getDay(); // 0 = Domingo, 6 = Sábado
 
 export const DetalheDoItem = ({ item, colors }) => {
   const horarioStatus = getHorarioStatus(item.horarios);
+  const isOpen = horarioStatus.isOpen;
 
   const handleWhatsApp = async () => {
     if (!item.premium) await incrementClicks(item.id);
     Linking.openURL(`https://wa.me/${item?.whatsapp?.principal.replace(/\D/g, '')}`);
   };
 
-  const isOpen = horarioStatus.isOpen;
-  const isLunchBreak = horarioStatus.emIntervalo;
+  // Cálculo do horário atual em minutos
+  const agora = new Date();
+  const horaAtual = agora.getHours() * 60 + agora.getMinutes();
 
-  // Cores suaves para o status
-  const statusColor = isOpen 
-    ? '#1A73E8'      // Azul suave (aberto)
-    : isLunchBreak 
-      ? '#FF9800'   // Laranja suave (em intervalo)
-      : '#666666';  // Cinza neutro (fechado)
+  const temIntervaloGlobal = item.horarios?.intervalo?.global === true;
+
+  let intervaloInicioMin = 0;
+  let intervaloRetornoMin = 0;
+  let estaNoIntervalo = false;
+
+  if (temIntervaloGlobal) {
+    intervaloInicioMin = parseInt(item.horarios.intervalo.inicio.replace(':', ''));
+    intervaloRetornoMin = parseInt(item.horarios.intervalo.retorno.replace(':', ''));
+    estaNoIntervalo = horaAtual >= intervaloInicioMin && horaAtual < intervaloRetornoMin;
+  }
+
+  // Só considera "no intervalo" se o estabelecimento estaria aberto sem o intervalo
+  const estaFechadoParaAlmoco = temIntervaloGlobal && estaNoIntervalo && isOpen;
 
   const temSabado = !!item.horarios?.sabado;
   const temDomingo = !!item.horarios?.domingo;
-  const temIntervalo = item.horarios?.intervalo?.global === true;
   const fazEntrega = item.fazEntrega === true;
   const temDescricao = !!item.descricao?.trim();
 
   return (
     <BottomSheetView style={styles.container}>
-      {/* Cabeçalho: Nome, descrição e status atual */}
+      {/* Cabeçalho */}
       <View style={styles.header}>
         <Text style={[styles.nomeLoja, { color: colors.text }]}>{item?.nome}</Text>
 
-        {/* Descrição (se existir) */}
         {temDescricao && (
           <Text style={styles.descricaoLoja}>{item.descricao.trim()}</Text>
         )}
-
-        {/* Status atual */}
-        <View style={styles.statusPrincipal}>
-          <Ionicons
-            name={isOpen ? 'lock-open-outline' : 'lock-closed-outline'}
-            size={16}
-            color={statusColor}
-          />
-          <Text style={[styles.statusTexto, { color: statusColor }]}>
-            {horarioStatus.text}
-          </Text>
-        </View>
       </View>
 
       {/* Seção de Horários */}
       <View style={styles.secaoHorarios}>
-        <Text style={styles.tituloSecao}>Horários de funcionamento</Text>
+        {/* Status atual */}
+        <View style={styles.statusPrincipal}>
+          <Ionicons
+            name={isOpen && !estaFechadoParaAlmoco ? 'lock-open-outline' : 'lock-closed-outline'}
+            size={16}
+            color={isOpen && !estaFechadoParaAlmoco ? '#28a745' : '#999'}
+          />
+          <Text style={styles.statusTexto}>
+            {estaFechadoParaAlmoco ? 'Fechado para almoço' : horarioStatus.text}
+          </Text>
+        </View>
+
+         {/* Intervalo de almoço — sempre no final */}
+        {temIntervaloGlobal && (
+          <>
+            <View style={styles.linhaIntervalo}>
+              <Ionicons name="time-outline" size={16} color="#e67e22" />
+              <Text style={styles.textoIntervalo}>
+                Intervalo: {item.horarios.intervalo.inicio} – {item.horarios.intervalo.retorno}
+              </Text>
+            </View>
+
+            {/* Mensagem pequena: "Voltamos às..." apenas se estiver fechado para almoço */}
+            {estaFechadoParaAlmoco && (
+              <View style={styles.linhaVoltamos}>
+                <Text style={styles.textoVoltamos}>
+                  Voltamos às {item.horarios.intervalo.retorno}
+                </Text>
+              </View>
+            )}
+          </>
+        )}
 
         {/* Segunda a Sexta */}
         <View style={styles.linhaHorario}>
-          <Text style={[
-            styles.diaSemana,
-            (hojeIndex >= 1 && hojeIndex <= 5) && styles.diaHoje
-          ]}>
-            Segunda–Sexta
-          </Text>
+          <Text style={styles.diaSemana}>Segunda–Sexta</Text>
           <Text style={styles.horario}>
             {item.horarios.semana.abre} – {item.horarios.semana.fecha}
           </Text>
         </View>
 
-        {/* Intervalo diário */}
-        {temIntervalo && (
-          <View style={styles.linhaHorario}>
-            <Text style={styles.diaSemana}>Intervalo diário</Text>
-            <Text style={styles.horario}>
-              {item.horarios.intervalo.inicio} – {item.horarios.intervalo.retorno}
-            </Text>
-          </View>
-        )}
+        
 
         {/* Sábado */}
         {temSabado && (
@@ -113,9 +127,11 @@ export const DetalheDoItem = ({ item, colors }) => {
             <Text style={styles.horarioFechado}>Fechado</Text>
           </View>
         )}
+
+       
       </View>
 
-      {/* Faz entregas (opcional) */}
+      {/* Faz entregas */}
       {fazEntrega && (
         <View style={styles.secaoExtra}>
           <Ionicons name="bicycle-outline" size={18} color={colors.text} />
@@ -123,7 +139,7 @@ export const DetalheDoItem = ({ item, colors }) => {
         </View>
       )}
 
-      {/* Botão WhatsApp simplificado */}
+      {/* Botão WhatsApp */}
       <Pressable
         onPress={handleWhatsApp}
         style={[styles.botaoWhatsApp, { backgroundColor: colors.botao }]}
@@ -160,35 +176,33 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     fontWeight: '400',
   },
+  secaoHorarios: {
+    backgroundColor: '#f9f9f9',
+    borderRadius: 22,
+    overflow: 'hidden',
+    marginBottom: 24,
+    paddingBottom: 12,
+  },
   statusPrincipal: {
+    backgroundColor: '#f5f5f5',
+    paddingHorizontal: 22,
+    paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginTop: 18,
   },
   statusTexto: {
-    fontWeight: '800',
-    textTransform:'uppercase'
-  },
-  secaoHorarios: {
-    backgroundColor: '#f9f9f9',
-    borderRadius: 16,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    marginBottom: 24,
-  },
-  tituloSecao: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-    marginBottom: 12,
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    color: '#333',
   },
   linhaHorario: {
     flexDirection: 'row',
+    paddingHorizontal: 22,
+    paddingVertical: 6,
     justifyContent: 'space-between',
-    paddingVertical: 11,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e5e5e5',
+    borderBottomWidth: StyleSheet.hairlineWidth * 0.8,
+    borderBottomColor: '#e8e8e8',
   },
   diaSemana: {
     fontSize: 15.5,
@@ -197,7 +211,7 @@ const styles = StyleSheet.create({
   },
   diaHoje: {
     fontWeight: '600',
-    color: '#1bc75aff',
+    color: '#1bc75a',
   },
   horario: {
     fontSize: 15.5,
@@ -206,8 +220,35 @@ const styles = StyleSheet.create({
   },
   horarioFechado: {
     fontSize: 15.5,
-    color: '#666666',
+    color: '#888',
     fontWeight: '400',
+  },
+  linhaIntervalo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#fff9e6',
+    paddingHorizontal: 22,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#ffeaa7',
+    marginBottom:12,
+  },
+  textoIntervalo: {
+    fontSize: 14.5,
+    color: '#d35400',
+    fontWeight: '500',
+  },
+  linhaVoltamos: {
+    paddingHorizontal: 22,
+    paddingBottom: 8,
+    alignItems: 'center',
+  },
+  textoVoltamos: {
+    fontSize: 13,
+    color: '#e67e22',
+    fontStyle: 'italic',
+    fontWeight: '500',
   },
   secaoExtra: {
     flexDirection: 'row',

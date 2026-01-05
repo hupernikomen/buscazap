@@ -5,7 +5,7 @@ import { hankingDeBusca } from '../utils/hankingDeBusca';
 import { fetchStoresOnce } from '../services/firebaseConnection/firestoreService'; // ← Use essa função única
 
 export default function Carregamentos() {
-  const ITENS_FIXOS_NO_TOPO = 1;
+  const ITENS_FIXOS_NO_TOPO = 2;
   const [resultados, setResultados] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [atualizando, setAtualizando] = useState(false);

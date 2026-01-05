@@ -63,7 +63,6 @@ export const confirmaPropostas = async () => {
 
       const dadosParaSalvar = {
         nome: dados.nome?.trim() || 'Sem nome',
-        categoria: dados.categoria?.trim() || '',
         descricao: dados.descricao?.trim() || '',
         whatsapp: {
           principal: dados.whatsapp?.principal?.trim() || '',

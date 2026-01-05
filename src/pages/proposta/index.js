@@ -31,6 +31,7 @@ export default function Proposta({ navigation }) {
     nome: '',
     whatsapp: '',
     tags: '',
+    descricao:'',
     fazEntrega: false,
     abertoSabado: true,
     abertoDomingo: false,
@@ -170,8 +171,8 @@ export default function Proposta({ navigation }) {
         whatsapp: { principal: numeroLimpo },
         tags: form.tags.split(',').map(t => t.trim().toLowerCase()).filter(Boolean),
         fazEntrega: form.fazEntrega,
+        descricao: form.descricao,
         bairro: '',
-        categoria: '',
         horarios,
         criadoEm: serverTimestamp(),
         anuncio: {
@@ -219,6 +220,21 @@ export default function Proposta({ navigation }) {
               }}
               placeholder="Ex: Pizzaria do Zé"
               maxLength={30}
+            />
+            {errors.nome && <Text style={styles.errorText}>Campo obrigatório</Text>}
+          </View>
+          {/* Descricao */}
+          <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>
+            <Text style={styles.label}>Descrição</Text>
+            <TextInput
+              style={[styles.input, { color: colors.text }]}
+              multiline
+              value={form.descricao}
+              onChangeText={(t) => {
+                setForm({ ...form, descricao: t.slice(0, 110) });
+              }}
+              placeholder="Fale sobre seu negócio..."
+              maxLength={110}
             />
             {errors.nome && <Text style={styles.errorText}>Campo obrigatório</Text>}
           </View>

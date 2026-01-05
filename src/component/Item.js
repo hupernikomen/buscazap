@@ -89,7 +89,7 @@ export const Item = ({ item, index, results, onPress, colors, searchQuery, ITENS
         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10, justifyContent: "space-between" }}>
           <View>
 
-            {calcularDestaque() && <Text style={{color:colors.destaque, fontWeight:500}}>Destaque</Text>}
+            {calcularDestaque() && <Text style={{ color: colors.destaque, fontWeight: 500 }}>Destaque</Text>}
             <Text style={[styles.nome, { color: nomeCor }]} numberOfLines={1}>
               {item.nome}
             </Text>
@@ -101,7 +101,7 @@ export const Item = ({ item, index, results, onPress, colors, searchQuery, ITENS
         </View>
 
         {item.descricao ? (
-          <Text style={[styles.descricao, { color: colors.text + 'B3' }]} numberOfLines={3}>
+          <Text style={[styles.descricao, { color: colors.text + 'B3' }]} numberOfLines={2}>
             {item.descricao}
           </Text>
         ) : null}
@@ -117,7 +117,9 @@ export const Item = ({ item, index, results, onPress, colors, searchQuery, ITENS
             {/* Status aberto/fechado */}
             <View style={styles.infoRow}>
               {/* <Ionicons name={horarioStatus?.isOpen ? 'lock-open-outline' : 'lock-closed-outline'} size={11} color={horarioStatus?.isOpen ? 'green':'red'} /> */}
-              <Text style={[styles.infoText, { color: colors.suave }]}>{horarioStatus.text} - {item?.bairro}</Text>
+              
+              {<Text style={[styles.infoText, { color: colors.suave }]}>{horarioStatus.text}</Text>}
+              <Text style={[styles.infoText, { color: colors.suave }]}>- {item?.bairro}</Text>
             </View>
 
 
@@ -165,7 +167,6 @@ const styles = StyleSheet.create({
   },
   descricao: {
     fontSize: 15,
-    marginBottom: 6,
   },
   footer: {
     flexDirection: 'row',
@@ -178,11 +179,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: 'center',
     gap: 6
-  },
-  categoria: {
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 0.35,
   },
   infoText: {
     fontSize: 11,

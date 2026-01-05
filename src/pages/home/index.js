@@ -28,8 +28,8 @@ import Carregamentos from '../../hooks/carregamentos';
 
 MobileAds().initialize();
 
-const INTERVALO_ANUNCIO = 7;
-const ITENS_ATE_PRIMEIRO_ANUNCIO = 4; // Primeiro anúncio após 4 itens
+const INTERVALO_ANUNCIO = 9
+const ITENS_ATE_PRIMEIRO_ANUNCIO = 3; // Primeiro anúncio após 4 itens
 
 export default function Home({ navigation }) {
   const [termoBusca, setTermoBusca] = useState('');

@@ -20,7 +20,6 @@ const AdBanner = ({ adKey, onAdLoaded }) => {
         <BannerAd
           unitId={AD_UNIT_ID}
           size={BannerAdSize.LARGE_BANNER}
-          // size={BannerAdSize.FULL_BANNER}
           requestOptions={{ requestNonPersonalizedAdsOnly: true }}
           onAdLoaded={() => onAdLoaded?.(adKey)}
           onAdFailedToLoad={(error) => {
@@ -50,7 +49,6 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   bannerWrapper: {
-    // height: 50,
     alignItems: 'center',
     justifyContent: 'center',
   },

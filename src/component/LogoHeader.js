@@ -9,7 +9,7 @@ export default function LogoHeader() {
     <View style={{ alignItems: 'center', paddingTop: 20 }}>
       <Image
         source={{ uri: LOGO_URL }}
-        style={{ width: 160, height: 70 }}
+        style={{ width: 170, height: 80 }}
         resizeMode="contain"
       />
     </View>
