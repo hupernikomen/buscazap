@@ -23,6 +23,7 @@ const MAX_CLIQUES_ANTES_RESET = 7;
 
 // Função assíncrona que incrementa o contador de cliques de uma loja (documento na coleção 'users')
 export const incrementClicks = async (itemId) => {
+  
   // Validação básica: garante que o ID do item foi passado
   if (!itemId) {
     console.error('ID do item inválido');

@@ -8,12 +8,13 @@ import { incrementClicks } from '../services/firebaseConnection/firestoreService
 const hojeIndex = new Date().getDay(); // 0 = Domingo, 6 = Sábado
 
 export const DetalheDoItem = ({ item, colors }) => {
+
   const horarioStatus = getHorarioStatus(item.horarios);
   const isOpen = horarioStatus.isOpen;
 
-  const handleWhatsApp = async () => {
+  const handleWhatsApp = async (numero) => {
     if (!item.premium) await incrementClicks(item.id);
-    Linking.openURL(`https://wa.me/${item?.whatsapp?.principal.replace(/\D/g, '')}`);
+    Linking.openURL(`https://wa.me/+55${numero.replace(/\D/g, '')}`);
   };
 
   // Cálculo do horário atual em minutos
@@ -65,7 +66,7 @@ export const DetalheDoItem = ({ item, colors }) => {
           </Text>
         </View>
 
-         {/* Intervalo de almoço — sempre no final */}
+        {/* Intervalo de almoço — sempre no final */}
         {temIntervaloGlobal && (
           <>
             <View style={styles.linhaIntervalo}>
@@ -94,7 +95,7 @@ export const DetalheDoItem = ({ item, colors }) => {
           </Text>
         </View>
 
-        
+
 
         {/* Sábado */}
         {temSabado && (
@@ -128,7 +129,7 @@ export const DetalheDoItem = ({ item, colors }) => {
           </View>
         )}
 
-       
+
       </View>
 
       {/* Faz entregas */}
@@ -139,14 +140,24 @@ export const DetalheDoItem = ({ item, colors }) => {
         </View>
       )}
 
-      {/* Botão WhatsApp */}
-      <Pressable
-        onPress={handleWhatsApp}
-        style={[styles.botaoWhatsApp, { backgroundColor: colors.botao }]}
-      >
-        <Ionicons name="logo-whatsapp" size={26} color="#fff" />
-        <Text style={styles.textoBotao}>WhatsApp</Text>
-      </Pressable>
+      {/* Botões WhatsApp - Suporte a múltiplos (filiais) */}
+      {Array.isArray(item.whatsapp) && item.whatsapp.length > 0 ? (
+        item.whatsapp.map((item, index) => (
+          <Pressable
+            key={index} // idealmente use um id único se tiver, mas index serve
+            onPress={() => handleWhatsApp(item.numero)} // passa apenas o número limpo
+            style={[styles.botaoWhatsApp, { backgroundColor: colors.botao }]}
+          >
+            <Ionicons name="logo-whatsapp" size={26} color="#fff" />
+            <Text style={styles.textoBotao}>
+              {item.bairro ? `Bairro ${item.bairro}` : 'WhatsApp'}
+            </Text>
+          </Pressable>
+        ))
+      ) : (
+        // Fallback caso não tenha whatsapp (raro)
+        <Text style={{ color: '#666', fontStyle: 'italic' }}>WhatsApp não informado</Text>
+      )}
     </BottomSheetView>
   );
 };
@@ -232,7 +243,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderTopWidth: 1,
     borderTopColor: '#ffeaa7',
-    marginBottom:12,
+    marginBottom: 12,
   },
   textoIntervalo: {
     fontSize: 14.5,
@@ -267,18 +278,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 14,
-    paddingVertical: 19,
+    paddingVertical: 12,
     borderRadius: 35,
     marginTop: 'auto',
     elevation: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
+    marginBottom:6
   },
   textoBotao: {
     color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '500',
   },
 });
