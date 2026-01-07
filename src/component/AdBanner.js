@@ -20,7 +20,6 @@ const AdBanner = ({ adKey, onAdLoaded }) => {
         <BannerAd
           unitId={AD_UNIT_ID}
           size={BannerAdSize.LARGE_BANNER}
-          requestOptions={{ requestNonPersonalizedAdsOnly: true }}
           onAdLoaded={() => onAdLoaded?.(adKey)}
           onAdFailedToLoad={(error) => {
             console.log('Anúncio falhou ao carregar:', error);

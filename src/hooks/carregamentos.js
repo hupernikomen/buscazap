@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { confirmaPropostas } from '../utils/confirmaPropostas';
+// import { confirmaPropostas } from '../utils/confirmaPropostas';
 import { carregaListaInicial } from '../utils/carregaListaInicial';
 import { hankingDeBusca } from '../utils/hankingDeBusca';
 import { fetchStoresOnce } from '../services/firebaseConnection/firestoreService'; // ← Use essa função única
@@ -19,8 +19,6 @@ export default function Carregamentos() {
     } else {
       setCarregando(true);
     }
-
-    await confirmaPropostas();
 
     const termoParaUsar = executarBusca ? termo.trim() : '';
 
