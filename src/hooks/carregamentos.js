@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 // import { confirmaPropostas } from '../utils/confirmaPropostas';
 import { carregaListaInicial } from '../utils/carregaListaInicial';
-import { hankingDeBusca } from '../utils/hankingDeBusca';
+import { rankingDeBusca } from '../utils/rankingDeBusca';
 import { fetchStoresOnce } from '../services/firebaseConnection/firestoreService'; // ← Use essa função única
 
 export default function Carregamentos() {
@@ -26,7 +26,7 @@ export default function Carregamentos() {
       const dadosBrutos = await fetchStoresOnce(termoParaUsar);
 
       const listaOrdenada = termoParaUsar
-        ? hankingDeBusca(dadosBrutos, termoParaUsar)
+        ? rankingDeBusca(dadosBrutos, termoParaUsar)
         : carregaListaInicial(dadosBrutos, ITENS_FIXOS_NO_TOPO);
 
       setResultados(listaOrdenada);

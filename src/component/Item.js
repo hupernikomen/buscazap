@@ -1,83 +1,34 @@
-// src/component/StoreItem.js
+// src/components/StoreItem.js
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getHorarioStatus } from '../utils/carregaHorarios';
-import { normalize } from '../utils/normalize';
-
-// Lista de preposições e palavras irrelevantes para remover
-const PREPOSICOES = new Set([
-  'de', 'para', 'em', 'com', 'a', 'o', 'da', 'do', 'as', 'os',
-  'um', 'uma', 'e', 'ou', 'no', 'na', 'dos', 'das', 'ao', 'à',
-  'pelo', 'pela', 'nos', 'nas', 'por', 'até', 'sem', 'sob',
-  'sobre', 'entre', 'atrás', 'frente', 'dentro', 'fora'
-]);
-
 
 export const Item = ({ item, index, results, onPress, colors, searchQuery, ITENS_FIXOS_NO_TOPO }) => {
-  // const ITENS_FIXOS_NO_TOPO = 3;
-
   const calcularDestaque = () => {
-    // Não mostra ícone para premium
     if (item?.anuncio?.premium) return false;
-
     if (!Array.isArray(results)) return false;
 
-    // Conta quantos itens normais com cliques estão antes dele
     const itensAntes = results.slice(0, index);
     const podiumAntes = itensAntes.filter(
       i => !i?.anuncio?.premium && (i.clicks || 0) > 0
     ).length;
 
-    // Só mostra o ícone se estiver entre os top 3 por cliques
     return (item.clicks || 0) > 0 && podiumAntes < ITENS_FIXOS_NO_TOPO;
   };
 
   const isPremium = item?.anuncio?.premium === true;
   const isBusca = item?.anuncio?.busca === true;
 
+  // Cor do nome: destaque se for anúncio pago (premium ou busca ativa durante pesquisa)
   const nomeCor =
-    (searchQuery?.trim() && isBusca)
+    (searchQuery?.trim() && isBusca) || (!searchQuery?.trim() && isPremium)
       ? colors.destaque
-      : (!searchQuery?.trim() && isPremium)
-        ? colors.destaque
-        : colors.primary;
+      : colors.primary;
 
   const horarioStatus = getHorarioStatus(item.horarios);
 
-
-  // === TAGS RELEVANTES + PALAVRAS NÃO ENCONTRADAS (sem preposições) ===
-  const buscaInfo = React.useMemo(() => {
-    if (!searchQuery?.trim() || !Array.isArray(item.tags) || item.tags.length === 0) {
-      return null;
-    }
-
-    // Filtra preposições da busca
-    const palavrasBusca = normalize(searchQuery)
-      .split(/\s+/)
-      .filter(Boolean)
-      .filter(palavra => !PREPOSICOES.has(palavra.toLowerCase()));
-
-    if (palavrasBusca.length === 0) return null;
-
-    const tagsNormalizadas = item.tags.map(tag => normalize(tag.trim()));
-
-    const encontradas = [];
-    const naoEncontradas = [];
-
-    palavrasBusca.forEach(palavra => {
-      const encontrou = tagsNormalizadas.some(tag => tag.includes(palavra));
-      if (encontrou) {
-        encontradas.push(palavra);
-      } else {
-        naoEncontradas.push(palavra);
-      }
-    });
-
-    if (encontradas.length === 0 && naoEncontradas.length === 0) return null;
-
-    return { encontradas, naoEncontradas };
-  }, [item.tags, searchQuery]);
+  const temAnuncioAtivo = isPremium || (isBusca && searchQuery?.trim());
 
   return (
     <TouchableOpacity
@@ -86,18 +37,21 @@ export const Item = ({ item, index, results, onPress, colors, searchQuery, ITENS
       style={styles.container}
     >
       <View style={styles.content}>
-        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10, justifyContent: "space-between" }}>
+        <View style={styles.header}>
           <View>
-
-            {calcularDestaque() && <Text style={{ color: colors.destaque, fontWeight: 500 }}>Destaque</Text>}
+            {calcularDestaque() && (
+              <Text style={{ color: colors.destaque, fontWeight: '500' }}>
+                Destaque
+              </Text>
+            )}
             <Text style={[styles.nome, { color: nomeCor }]} numberOfLines={1}>
               {item.nome}
             </Text>
           </View>
+
           {calcularDestaque() && (
             <Ionicons name="ribbon-outline" size={16} color={colors.text} />
           )}
-
         </View>
 
         {item.descricao ? (
@@ -106,48 +60,41 @@ export const Item = ({ item, index, results, onPress, colors, searchQuery, ITENS
           </Text>
         ) : null}
 
-
-
-
-
         <View style={styles.footer}>
-
           <View style={styles.left}>
-
-            {/* Status aberto/fechado */}
             <View style={styles.infoRow}>
-              {/* <Ionicons name={horarioStatus?.isOpen ? 'lock-open-outline' : 'lock-closed-outline'} size={11} color={horarioStatus?.isOpen ? 'green':'red'} /> */}
-              
-              {<Text style={[styles.infoText, { color: colors.suave }]}>{horarioStatus.text}</Text>}
-              <Text style={[styles.infoText, { color: colors.suave }]}>- {item?.bairro}</Text>
-            </View>
+              <View style={styles.infoRow}>
+                <Text style={[styles.infoText, { color: colors.suave }]}>
+                  {(() => {
+                    const text = horarioStatus.text;
 
+                    // Caso especial: "Aberto - Fecha às XX:XX"
+                    if (text.startsWith('Aberto - Fecha às')) {
+                      const resto = text.slice('Aberto - '.length); // "Fecha às 18:00"
+                      return (
+                        <>
+                          <Text style={{ color: colors.botao, fontWeight: '500' }}>Aberto</Text>
+                          <Text> - {resto}</Text>
+                        </>
+                      );
+                    }
 
-            {/* Tags relevantes + palavras não encontradas (sem preposições) */}
-            {buscaInfo && (
-              <View style={styles.buscaInfoContainer}>
-                {buscaInfo.encontradas.length > 0 && (
-                  <Text style={styles.buscaEncontrada}>
-                    {buscaInfo.encontradas.join(' · ')}
-                  </Text>
-                )}
-                {buscaInfo.naoEncontradas.length > 0 && (
-                  <Text style={styles.buscaNaoEncontrada}>
-                    {buscaInfo.naoEncontradas.join(' · ')}
-                  </Text>
-                )}
+                    // Todos os outros casos (Fechado, Fechado para almoço, etc.)
+                    return text;
+                  })()}
+                </Text>
+
               </View>
-            )}
+
+            </View>
           </View>
 
           <View style={styles.right}>
-            {(isPremium || (isBusca && searchQuery?.trim())) && (
+            {temAnuncioAtivo && (
               <Text style={[styles.sponsored, { color: colors.text + '70' }]}>
                 ・ Anúncio pago
               </Text>
             )}
-
-
           </View>
         </View>
       </View>
@@ -161,6 +108,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
   },
   content: {},
+  header: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
   nome: {
     fontSize: 18,
     fontWeight: '600',
@@ -170,38 +123,22 @@ const styles = StyleSheet.create({
   },
   footer: {
     flexDirection: 'row',
-    alignItems: "flex-end",
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
-    marginTop: 4,
+    marginTop: 8,
   },
-  left: { flex: 1 },
+  left: {
+    flex: 1,
+  },
   infoRow: {
-    flexDirection: "row",
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 6
+    gap: 6,
   },
   infoText: {
     fontSize: 11,
     textTransform: 'uppercase',
     letterSpacing: 0.35,
-  },
-  buscaInfoContainer: {
-    marginTop: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  buscaEncontrada: {
-    fontSize: 12,
-    color: '#000',
-    fontWeight: 300
-  },
-  buscaNaoEncontrada: {
-    fontWeight: 300,
-    color: '#000',
-    fontSize: 12,
-    textDecorationLine: 'line-through',
   },
   right: {
     flexDirection: 'row',

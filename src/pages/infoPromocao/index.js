@@ -45,7 +45,7 @@ export default function InfoPromocao({ navigation }) {
       <View style={styles.planCard}>
         <Text style={styles.planBadge}>MAIS VISIBILIDADE</Text>
         <Text style={styles.planTitle}>Anúncio Fixo no Topo</Text>
-        <Text style={styles.planPrice}>R$ 9,90 por 30 dias</Text>
+        <Text style={styles.planPrice}>R$ 14,90 por 30 dias</Text>
 
         <Text style={styles.planDescription}>
           Seu anúncio fica sempre visível no topo da tela inicial do app.
@@ -67,7 +67,7 @@ export default function InfoPromocao({ navigation }) {
       <View style={styles.planCard}>
         <Text style={styles.planBadge}>MAIS VENDAS</Text>
         <Text style={styles.planTitle}>Anúncio no Topo da Busca</Text>
-        <Text style={styles.planPrice}>R$ 4,90 por 30 dias</Text>
+        <Text style={styles.planPrice}>R$ 7,90 por 30 dias</Text>
 
         <Text style={styles.planDescription}>
           Quando alguém buscar por palavras que você definiu nas palavras-chave do seu anúncio (como "pizza", "farmácia", "entrega" etc.), seu anúncio aparecerá no topo dos resultados.
