@@ -7,6 +7,7 @@ import {
   BackHandler,
   Text,
   Pressable,
+  ActivityIndicator, // ← Adicionado
 } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { BottomSheetModal, BottomSheetModalProvider } from '@gorhom/bottom-sheet';
@@ -16,20 +17,18 @@ import { carregarItensMenu } from '../../utils/carregaItensMenu';
 import { Item } from '../../component/Item';
 import { DetalheDoItem } from '../../component/DetalheDoItem';
 
-// Componentes locais
 import LogoHeader from '../../component/LogoHeader';
 import SearchBar from '../../component/SearchBar';
 import MenuHorizontal from '../../component/MenuHorizontal';
 import AdBanner from '../../component/AdBanner';
 import SemResultado from '../../component/SemResultado';
 
-// Hook personalizado
 import Carregamentos from '../../hooks/carregamentos';
 
 MobileAds().initialize();
 
-const INTERVALO_ANUNCIO = 9
-const ITENS_ATE_PRIMEIRO_ANUNCIO = 3; // Primeiro anúncio após 4 itens
+const INTERVALO_ANUNCIO = 9;
+const ITENS_ATE_PRIMEIRO_ANUNCIO = 3;
 
 export default function Home({ navigation }) {
   const [termoBusca, setTermoBusca] = useState('');
@@ -41,7 +40,6 @@ export default function Home({ navigation }) {
   const { colors } = useTheme();
   const modalRef = useRef(null);
 
-  // Hook que gerencia todos os dados das lojas
   const {
     resultados,
     carregando,
@@ -52,13 +50,10 @@ export default function Home({ navigation }) {
     ITENS_FIXOS_NO_TOPO,
   } = Carregamentos();
 
-  // Carrega menu horizontal
   useEffect(() => {
     const unsubscribe = carregarItensMenu(setItensMenu);
     return () => unsubscribe && unsubscribe();
   }, []);
-
-
 
   const executarBusca = () => {
     if (termoBusca.trim()) {
@@ -108,13 +103,11 @@ export default function Home({ navigation }) {
     let primeiroAnuncioInserido = false;
 
     resultados.forEach((item, indice) => {
-      // Primeiro anúncio após 4 itens — sempre insere o slot
       if (!primeiroAnuncioInserido && indice === ITENS_ATE_PRIMEIRO_ANUNCIO) {
         itensComAnuncios.push({ type: 'ad', key: 'ad-primeiro' });
         primeiroAnuncioInserido = true;
       }
 
-      // Anúncios subsequentes a cada 7 itens
       if (primeiroAnuncioInserido) {
         contadorItensDepoisDoPrimeiroAnuncio++;
         if (
@@ -125,7 +118,6 @@ export default function Home({ navigation }) {
         }
       }
 
-      // Item da loja
       itensComAnuncios.push({
         type: 'store',
         item,
@@ -135,7 +127,7 @@ export default function Home({ navigation }) {
     });
 
     return [...cabecalho, ...itensComAnuncios];
-  }, [resultados, itensMenu, termoBusca, buscaExecutada, carregando]); // Removido anunciosCarregados da dependência
+  }, [resultados, itensMenu, termoBusca, buscaExecutada, carregando]);
 
   const renderizarItem = ({ item }) => {
     switch (item.type) {
@@ -158,7 +150,7 @@ export default function Home({ navigation }) {
       case 'menu_horizontal':
         return <MenuHorizontal itensMenu={itensMenu} colors={colors} navigation={navigation} />;
       case 'ad':
-        return <AdBanner adKey={item.key}  />;
+        return <AdBanner adKey={item.key} />;
       case 'no_results':
         return <SemResultado colors={colors} query={item.query} />;
       case 'store':
@@ -191,6 +183,10 @@ export default function Home({ navigation }) {
     });
     return () => handler.remove();
   }, [itemSelecionado]);
+
+  // NOVO: Loading overlay quando está carregando a lista inicial ou busca
+  const mostrarLoadingInicial = carregando && resultados.length === 0 && !buscaExecutada;
+  const mostrarLoadingBusca = carregando && buscaExecutada;
 
   return (
     <BottomSheetModalProvider>
@@ -227,6 +223,22 @@ export default function Home({ navigation }) {
             <RefreshControl refreshing={atualizando} onRefresh={recarregar} tintColor={colors.primary} />
           }
         />
+
+        {/* Loading inicial (tela branca com spinner) */}
+        {mostrarLoadingInicial && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color={colors.botao} />
+            <Text style={{ marginTop: 16, fontSize: 16, color: colors.text }}>Carregando...</Text>
+          </View>
+        )}
+
+        {/* Loading durante busca */}
+        {mostrarLoadingBusca && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color={colors.botao} />
+            <Text style={{ marginTop: 16, fontSize: 16, color: colors.text }}>Buscando...</Text>
+          </View>
+        )}
       </View>
 
       <BottomSheetModal
@@ -254,4 +266,11 @@ export default function Home({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
 });
