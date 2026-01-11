@@ -1,77 +1,119 @@
+// src/hooks/carregamentos.js
+
 import { useState, useEffect, useCallback } from 'react';
-// import { confirmaPropostas } from '../utils/confirmaPropostas';
 import { carregaListaInicial } from '../utils/carregaListaInicial';
-import { rankingDeBusca } from '../utils/rankingDeBusca';
-import { fetchStoresOnce } from '../services/firebaseConnection/firestoreService'; // ← Use essa função única
+import { rankingSimples } from '../utils/rankingSimples';
+import { fetchStoresPaginado } from '../services/firebaseConnection/firestoreService';
+
+const ITENS_FIXOS_NO_TOPO = 2;
 
 export default function Carregamentos() {
-  const ITENS_FIXOS_NO_TOPO = 2;
   const [resultados, setResultados] = useState([]);
   const [carregando, setCarregando] = useState(true);
-  const [atualizando, setAtualizando] = useState(false);
+  const [carregandoMais, setCarregandoMais] = useState(false);
+  const [atualizando, setAtualizando] = useState(false); // ← Para o RefreshControl
+  const [temMais, setTemMais] = useState(false);
+  const [termoAtual, setTermoAtual] = useState('');
 
-  const [estaEmBusca, setEstaEmBusca] = useState(false);
-  const [termoBuscaAtual, setTermoBuscaAtual] = useState('');
-
-  const carregarDados = useCallback(async (termo = '', executarBusca = false, atualizar = false) => {
-    if (atualizar) {
-      setAtualizando(true);
-    } else {
-      setCarregando(true);
-    }
-
-    const termoParaUsar = executarBusca ? termo.trim() : '';
+  const carregarInicial = useCallback(async () => {
+    setCarregando(true);
+    setResultados([]);
 
     try {
-      const dadosBrutos = await fetchStoresOnce(termoParaUsar);
-
-      const listaOrdenada = termoParaUsar
-        ? rankingDeBusca(dadosBrutos, termoParaUsar)
-        : carregaListaInicial(dadosBrutos, ITENS_FIXOS_NO_TOPO);
-
-      setResultados(listaOrdenada);
+      const { dados, temMais: temMaisAgora } = await fetchStoresPaginado('', true);
+      const lista = carregaListaInicial(dados, ITENS_FIXOS_NO_TOPO);
+      setResultados(lista);
+      setTemMais(temMaisAgora);
+      setTermoAtual('');
     } catch (error) {
-      console.error('Erro ao carregar dados:', error);
+      console.error('Erro ao carregar inicial:', error);
       setResultados([]);
+      setTemMais(false);
     } finally {
       setCarregando(false);
-      if (atualizar) setAtualizando(false);
     }
   }, []);
 
-  // Carregamento inicial (quando abre o app)
   useEffect(() => {
-    carregarDados('', false);
-  }, [carregarDados]);
+    carregarInicial();
+  }, [carregarInicial]);
 
-  const executarBusca = useCallback((termo) => {
-    if (termo.trim()) {
-      setEstaEmBusca(true);
-      setTermoBuscaAtual(termo.trim());
-      carregarDados(termo.trim(), true);
+  const executarBusca = useCallback(async (termo) => {
+    if (!termo.trim()) {
+      carregarInicial();
+      return;
     }
-  }, [carregarDados]);
+
+    setTermoAtual(termo.trim());
+    setCarregando(true);
+    setResultados([]);
+
+    try {
+      const { dados, temMais: temMaisAgora } = await fetchStoresPaginado(termo.trim(), true);
+      const ordenados = rankingSimples(dados, termo.trim());
+      setResultados(ordenados);
+      setTemMais(temMaisAgora);
+    } catch (error) {
+      console.error('Erro na busca:', error);
+      setResultados([]);
+    } finally {
+      setCarregando(false);
+    }
+  }, [carregarInicial]);
+
+  const carregarMais = useCallback(async () => {
+    if (!temMais || carregandoMais) return;
+
+    setCarregandoMais(true);
+    try {
+      const termoParaUsar = termoAtual || '';
+      const { dados, temMais: temMaisAgora } = await fetchStoresPaginado(termoParaUsar);
+      
+      let novosItens = dados;
+      if (termoParaUsar === '') {
+        novosItens = carregaListaInicial(dados, ITENS_FIXOS_NO_TOPO);
+      } else {
+        novosItens = rankingSimples(dados, termoParaUsar);
+      }
+
+      setResultados(prev => [...prev, ...novosItens]);
+      setTemMais(temMaisAgora);
+    } catch (error) {
+      console.error('Erro ao carregar mais:', error);
+    } finally {
+      setCarregandoMais(false);
+    }
+  }, [temMais, carregandoMais, termoAtual]);
+
+  const recarregar = useCallback(async () => {
+    setAtualizando(true);
+
+    try {
+      if (termoAtual) {
+        await executarBusca(termoAtual);
+      } else {
+        await carregarInicial();
+      }
+    } catch (error) {
+      console.error('Erro ao recarregar:', error);
+    } finally {
+      setAtualizando(false);
+    }
+  }, [termoAtual, executarBusca, carregarInicial]);
 
   const voltarParaListaInicial = useCallback(() => {
-    setEstaEmBusca(false);
-    setTermoBuscaAtual('');
-    carregarDados('', false);
-  }, [carregarDados]);
-
-  // Pull-to-refresh: agora SIM atualiza o ranking (opcional — veja abaixo)
-  const recarregar = useCallback(() => {
-    if (estaEmBusca && termoBuscaAtual) {
-      carregarDados(termoBuscaAtual, true, true);
-    } else {
-      carregarDados('', false, true); // Atualiza o ranking por cliques
-    }
-  }, [carregarDados, estaEmBusca, termoBuscaAtual]);
+    setTermoAtual('');
+    carregarInicial();
+  }, [carregarInicial]);
 
   return {
     resultados,
     carregando,
+    carregandoMais,
     atualizando,
+    temMais,
     executarBusca,
+    carregarMais,
     voltarParaListaInicial,
     recarregar,
     ITENS_FIXOS_NO_TOPO
