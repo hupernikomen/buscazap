@@ -39,18 +39,16 @@ export default function Proposta({ navigation }) {
     semanaAbre: '08:00',
     semanaFecha: '18:00',
     sabadoAbre: '08:00',
-    sabadoFecha: '13:00',
+    sabadoFecha: '12:00',
     domingoAbre: '09:00',
-    domingoFecha: '13:00',
+    domingoFecha: '12:00',
     intervaloInicio: '12:00',
-    intervaloRetorno: '13:30',
+    intervaloRetorno: '12:00',
   });
 
   const [errors, setErrors] = useState({
     nome: false,
     whatsapp: false,
-    bairro: false,
-    tags: false,
     whatsappDuplicado: '',
   });
 
@@ -105,8 +103,6 @@ export default function Proposta({ navigation }) {
     const newErrors = {
       nome: !form.nome.trim(),
       whatsapp: form.whatsappNumero.length < 10,
-      bairro: !form.bairro.trim(),
-      tags: !form.tags.trim(),
       whatsappDuplicado: '',
     };
 
@@ -183,13 +179,13 @@ export default function Proposta({ navigation }) {
         <View style={styles.card}>
           <View style={styles.header}>
             <Text style={styles.title}>É fácil, rápido e grátis!</Text>
-            <Text style={styles.subtitle}>Todos os campos são obrigatórios</Text>
           </View>
 
           {/* Nome */}
           <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>
             <Text style={styles.label}>Nome</Text>
             <TextInput
+              placeholderTextColor={'#aaa'}
               style={[styles.input, { color: colors.text }, errors.nome && styles.inputError]}
               value={form.nome}
               onChangeText={(t) => {
@@ -202,38 +198,13 @@ export default function Proposta({ navigation }) {
             {errors.nome && <Text style={styles.errorText}>Campo obrigatório</Text>}
           </View>
 
-          {/* Bairro - NOVO CAMPO com aparência original */}
-          <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>
-            <Text style={styles.label}>Bairro</Text>
-            <TextInput
-              style={[styles.input, { color: colors.text }, errors.bairro && styles.inputError]}
-              value={form.bairro}
-              onChangeText={(t) => {
-                setForm({ ...form, bairro: t });
-                if (errors.bairro) setErrors({ ...errors, bairro: false });
-              }}
-              placeholder="Ex: Centro"
-            />
-            {errors.bairro && <Text style={styles.errorText}>Campo obrigatório</Text>}
-          </View>
 
-          {/* Descrição */}
-          <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>
-            <Text style={styles.label}>Descrição</Text>
-            <TextInput
-              style={[styles.inputMultiline, { color: colors.text }]}
-              value={form.descricao}
-              onChangeText={(t) => setForm({ ...form, descricao: t.slice(0, 110) })}
-              placeholder="Fale sobre seu negócio..."
-              multiline
-              maxLength={110}
-            />
-          </View>
 
           {/* WhatsApp */}
           <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>
             <Text style={styles.label}>WhatsApp (com DDD)</Text>
             <TextInput
+              placeholderTextColor={'#aaa'}
               style={[
                 styles.input,
                 { color: colors.text },
@@ -249,34 +220,22 @@ export default function Proposta({ navigation }) {
             {errors.whatsappDuplicado && <Text style={styles.errorText}>{errors.whatsappDuplicado}</Text>}
           </View>
 
-          {/* Horários - bloco completo com background card */}
-          <View style={{ backgroundColor: colors.card, borderRadius: 16, paddingVertical: 12 }}>
-            <Text style={styles.sectionTitle}>Horários</Text>
-            {/* ... todo o código de horários que você já tinha (exatamente igual) ... */}
-            <View style={styles.horarioRow}>
-              <Text style={styles.horarioDia}>Segunda a Sexta</Text>
-              <TextInput style={styles.horarioInput} value={form.semanaAbre} onChangeText={(t) => setForm({ ...form, semanaAbre: t })} placeholder="08:00" keyboardType="numbers-and-punctuation" maxLength={5} />
-              <Text style={styles.horarioSeparator}>às</Text>
-              <TextInput style={styles.horarioInput} value={form.semanaFecha} onChangeText={(t) => setForm({ ...form, semanaFecha: t })} placeholder="18:00" keyboardType="numbers-and-punctuation" maxLength={5} />
-            </View>
-
-            <View style={styles.switchRow}>
-              <Text style={styles.switchLabel}>Aberto aos sábados?</Text>
-              <Switch value={form.abertoSabado} onValueChange={(v) => setForm({ ...form, abertoSabado: v })} trackColor={{ false: '#767577', true: colors.botao }} thumbColor={form.abertoSabado ? '#fff' : '#f4f3f4'} />
-            </View>
-
-            {form.abertoSabado && (
-              <View style={styles.horarioRow}>
-                <Text style={styles.horarioDia}>Sábado</Text>
-                <TextInput style={styles.horarioInput} value={form.sabadoAbre} onChangeText={(t) => setForm({ ...form, sabadoAbre: t })} placeholder="08:00" maxLength={5} />
-                <Text style={styles.horarioSeparator}>às</Text>
-                <TextInput style={styles.horarioInput} value={form.sabadoFecha} onChangeText={(t) => setForm({ ...form, sabadoFecha: t })} placeholder="13:00" maxLength={5} />
-              </View>
-            )}
-
-            {/* ... resto dos horários exatamente como no seu código original ... */}
-            {/* (Domingo, intervalo, etc.) */}
+          {/* Descrição */}
+          <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>
+            <Text style={styles.label}>Descrição</Text>
+            <TextInput
+              placeholderTextColor={'#aaa'}
+              style={[styles.inputMultiline, { color: colors.text }]}
+              value={form.descricao}
+              onChangeText={(t) => setForm({ ...form, descricao: t.slice(0, 110) })}
+              placeholder="Fale sobre seu negócio..."
+              multiline
+              maxLength={110}
+            />
           </View>
+
+
+
 
           {/* Faz entregas */}
           <View style={{ backgroundColor: colors.card, borderRadius: 16, paddingVertical: 8 }}>
@@ -286,24 +245,10 @@ export default function Proposta({ navigation }) {
             </View>
           </View>
 
-          {/* Tags */}
-          <View style={{ backgroundColor: colors.card, borderRadius: 16 }}>
-            <Text style={styles.label}>Palavras-chave (separadas por vírgula)</Text>
-            <TextInput
-              style={[styles.inputMultiline, { color: colors.text }, errors.tags && styles.inputError]}
-              value={form.tags}
-              onChangeText={(t) => {
-                setForm({ ...form, tags: t });
-                if (errors.tags) setErrors({ ...errors, tags: false });
-              }}
-              placeholder="pizza, delivery, açaí, 24h, promoção"
-              multiline
-            />
-            {errors.tags && <Text style={styles.errorText}>Campo obrigatório</Text>}
-          </View>
+
 
           <Text style={[styles.footer, { color: colors.text + '70' }]}>
-            Analisaremos seu cadastro e entraremos em contato em até 24h.
+            Analisaremos seu cadastro em até 24h.
           </Text>
 
           <Pressable
@@ -322,11 +267,11 @@ export default function Proposta({ navigation }) {
 // Seu StyleSheet 100% original (sem nenhuma alteração)
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
-    paddingBottom: 30,
+    paddingHorizontal: 20,
   },
   header: {
     paddingHorizontal: 30,
+    marginBottom:22,
     alignItems: 'center',
   },
   title: {

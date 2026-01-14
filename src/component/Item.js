@@ -1,26 +1,26 @@
 // src/components/StoreItem.js
+
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getHorarioStatus } from '../utils/carregaHorarios';
 
-export const Item = ({ item, index, results, onPress, colors, searchQuery, ITENS_FIXOS_NO_TOPO }) => {
-  const calcularDestaque = () => {
-    if (item?.anuncio?.premium) return false;
-    if (!Array.isArray(results)) return false;
+export const Item = ({ 
+  item, 
+  onPress, 
+  colors, 
+  searchQuery,
+  // Nova prop: só mostra destaque na home
+  isHome = false  // true quando não há busca ativa
+}) => {
 
-    const itensAntes = results.slice(0, index);
-    const podiumAntes = itensAntes.filter(
-      i => !i?.anuncio?.premium && (i.clicks || 0) > 0
-    ).length;
-
-    return (item.clicks || 0) > 0 && podiumAntes < ITENS_FIXOS_NO_TOPO;
-  };
+  // Agora usamos a flag que veio do backend da ordenação
+  const isDestaque = isHome && item._isDestaque === true;
 
   const isPremium = item?.anuncio?.premium === true;
   const isBusca = item?.anuncio?.busca === true;
 
-  // Cor do nome: destaque se for anúncio pago (premium ou busca ativa durante pesquisa)
+  // Cor do nome: destaque visual para anúncios pagos
   const nomeCor =
     (searchQuery?.trim() && isBusca) || (!searchQuery?.trim() && isPremium)
       ? colors.destaque
@@ -39,7 +39,7 @@ export const Item = ({ item, index, results, onPress, colors, searchQuery, ITENS
       <View style={styles.content}>
         <View style={styles.header}>
           <View>
-            {calcularDestaque() && (
+            {isDestaque && (
               <Text style={{ color: colors.destaque, fontWeight: '500' }}>
                 Destaque
               </Text>
@@ -49,7 +49,7 @@ export const Item = ({ item, index, results, onPress, colors, searchQuery, ITENS
             </Text>
           </View>
 
-          {calcularDestaque() && (
+          {isDestaque && (
             <Ionicons name="ribbon-outline" size={16} color={colors.text} />
           )}
         </View>
@@ -63,29 +63,23 @@ export const Item = ({ item, index, results, onPress, colors, searchQuery, ITENS
         <View style={styles.footer}>
           <View style={styles.left}>
             <View style={styles.infoRow}>
-              <View style={styles.infoRow}>
-                <Text style={[styles.infoText, { color: colors.suave }]}>
-                  {(() => {
-                    const text = horarioStatus.text;
+              <Text style={[styles.infoText, { color: colors.suave }]}>
+                {(() => {
+                  const text = horarioStatus.text;
 
-                    // Caso especial: "Aberto - Fecha às XX:XX"
-                    if (text.startsWith('Aberto - Fecha às')) {
-                      const resto = text.slice('Aberto - '.length); // "Fecha às 18:00"
-                      return (
-                        <>
-                          <Text style={{ color: colors.botao, fontWeight: '500' }}>Aberto</Text>
-                          <Text> - {resto}</Text>
-                        </>
-                      );
-                    }
+                  if (text.startsWith('Aberto - Fecha às')) {
+                    const resto = text.slice('Aberto - '.length);
+                    return (
+                      <>
+                        <Text style={{ color: colors.botao, fontWeight: '500' }}>Aberto</Text>
+                        <Text> - {resto}</Text>
+                      </>
+                    );
+                  }
 
-                    // Todos os outros casos (Fechado, Fechado para almoço, etc.)
-                    return text;
-                  })()}
-                </Text>
-
-              </View>
-
+                  return text;
+                })()}
+              </Text>
             </View>
           </View>
 

@@ -3,17 +3,34 @@ import React from 'react';
 import {
   View,
   Text,
-  Image,
   ScrollView,
   StyleSheet,
   Pressable,
+  Linking, // ← Importado para abrir o WhatsApp
 } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 
-const EXEMPLO_ANUNCIO = 'https://firebasestorage.googleapis.com/v0/b/appguiacomercial-e6109.appspot.com/o/anuncio.jpeg?alt=media&token=31c49db5-6670-454e-a662-78bc8a2cf42a';
+const NUMERO_WHATSAPP = '86994773403'; // Número sem +55 ou espaços
 
 export default function InfoPromocao({ navigation }) {
   const { colors } = useTheme();
+
+  // Função para abrir WhatsApp com mensagem pré-pronta
+  const abrirWhatsApp = (plano) => {
+    let mensagem = '';
+
+    if (plano === 'fixo') {
+      mensagem = `Olá! Gostaria de contratar o plano *Anúncio Fixo no Topo* por R$ 14,90 (30 dias). Meu anúncio deve ficar sempre no topo da tela inicial do Busca Zap Teresina.`;
+    } else if (plano === 'busca') {
+      mensagem = `Olá! Gostaria de contratar o plano *Anúncio no Topo da Busca* por R$ 7,90 (30 dias). Quero aparecer no topo quando as pessoas buscarem pelas minhas palavras-chave.`;
+    }
+
+    const url = `https://wa.me/${NUMERO_WHATSAPP}?text=${encodeURIComponent(mensagem)}`;
+
+    Linking.openURL(url).catch(() => {
+      alert('Não foi possível abrir o WhatsApp. Verifique se o app está instalado.');
+    });
+  };
 
   return (
     <ScrollView showsVerticalScrollIndicator={false} style={[styles.container, { backgroundColor: colors.background }]}>
@@ -22,16 +39,6 @@ export default function InfoPromocao({ navigation }) {
         <Text style={styles.title}>Coloque seu anúncio no topo</Text>
         <Text style={styles.subtitle}>e receba mais mensagens no WhatsApp todos os dias</Text>
       </View>
-
-      {/* Exemplo do anúncio destacado */}
-      {/* <View style={styles.exampleContainer}>
-        <Text style={styles.exampleTitle}>Veja como seu anúncio ficará em destaque</Text>
-        <Image 
-          source={{ uri: EXEMPLO_ANUNCIO }} 
-          style={styles.exampleImage} 
-          resizeMode="contain" 
-        />
-      </View> */}
 
       {/* Introdução */}
       <View style={styles.introContainer}>
@@ -57,7 +64,7 @@ export default function InfoPromocao({ navigation }) {
 
         <Pressable 
           style={[styles.actionButton, { backgroundColor: colors.botao }]}
-          onPress={() => navigation.navigate('Proposta', { plano: 'fixo' })}
+          onPress={() => abrirWhatsApp('fixo')} // ← Abre WhatsApp com mensagem do plano fixo
         >
           <Text style={styles.actionText}>Quero este</Text>
         </Pressable>
@@ -79,7 +86,7 @@ export default function InfoPromocao({ navigation }) {
 
         <Pressable 
           style={[styles.actionButton, { backgroundColor: colors.botao }]}
-          onPress={() => navigation.navigate('Proposta', { plano: 'busca' })}
+          onPress={() => abrirWhatsApp('busca')} // ← Abre WhatsApp com mensagem do plano busca
         >
           <Text style={styles.actionText}>Quero este</Text>
         </Pressable>
@@ -109,6 +116,8 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 30,
+    paddingTop: 40,
+    paddingBottom: 20,
     alignItems: 'center',
   },
   title: {
@@ -124,26 +133,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
     color: '#555',
     lineHeight: 26,
-  },
-  exampleContainer: {
-    alignItems: 'center',
-    marginTop: 40,
-    paddingHorizontal: 20,
-  },
-  exampleTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  exampleImage: {
-    width: '100%',
-    height: undefined,
-    aspectRatio: 1.8, // ajuste conforme a proporção real da imagem
-    borderRadius: 20,
-    backgroundColor: '#f8f8f8',
-    elevation: 8,
   },
   introContainer: {
     paddingHorizontal: 30,

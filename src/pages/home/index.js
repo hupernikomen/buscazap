@@ -7,7 +7,7 @@ import {
   BackHandler,
   Text,
   Pressable,
-  ActivityIndicator, // ← Adicionado
+  ActivityIndicator,
 } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { BottomSheetModal, BottomSheetModalProvider } from '@gorhom/bottom-sheet';
@@ -47,9 +47,9 @@ export default function Home({ navigation }) {
     executarBusca: executarBuscaHook,
     voltarParaListaInicial,
     recarregar,
-    ITENS_FIXOS_NO_TOPO,
   } = Carregamentos();
 
+  // Carrega menu horizontal
   useEffect(() => {
     const unsubscribe = carregarItensMenu(setItensMenu);
     return () => unsubscribe && unsubscribe();
@@ -84,13 +84,17 @@ export default function Home({ navigation }) {
     setShowSearchShadow(scrollY > 100);
   };
 
+  // Determina se estamos na tela inicial (home) ou em modo busca
+  const isHome = !termoBusca.trim() || !buscaExecutada;
+
   const listaCompleta = useMemo(() => {
     const cabecalho = [
       { type: 'logo' },
       { type: 'search' },
-      !termoBusca.trim() && itensMenu.length > 0 ? { type: 'menu_horizontal' } : null,
+      isHome && itensMenu.length > 0 ? { type: 'menu_horizontal' } : null,
     ].filter(Boolean);
 
+    // Estados especiais
     if (termoBusca.trim() && !buscaExecutada) return cabecalho;
     if (carregando && buscaExecutada) return cabecalho;
     if (buscaExecutada && resultados.length === 0 && !carregando) {
@@ -98,20 +102,23 @@ export default function Home({ navigation }) {
     }
     if (resultados.length === 0) return cabecalho;
 
+    // Inserção de anúncios na lista de resultados
     const itensComAnuncios = [];
-    let contadorItensDepoisDoPrimeiroAnuncio = 0;
+    let contadorDepoisPrimeiroAnuncio = 0;
     let primeiroAnuncioInserido = false;
 
     resultados.forEach((item, indice) => {
+      // Insere o primeiro anúncio após os primeiros N itens
       if (!primeiroAnuncioInserido && indice === ITENS_ATE_PRIMEIRO_ANUNCIO) {
         itensComAnuncios.push({ type: 'ad', key: 'ad-primeiro' });
         primeiroAnuncioInserido = true;
       }
 
+      // Depois do primeiro anúncio, insere a cada INTERVALO_ANUNCIO itens
       if (primeiroAnuncioInserido) {
-        contadorItensDepoisDoPrimeiroAnuncio++;
+        contadorDepoisPrimeiroAnuncio++;
         if (
-          contadorItensDepoisDoPrimeiroAnuncio % INTERVALO_ANUNCIO === 0 &&
+          contadorDepoisPrimeiroAnuncio % INTERVALO_ANUNCIO === 0 &&
           indice < resultados.length - 1
         ) {
           itensComAnuncios.push({ type: 'ad', key: `ad-${indice}` });
@@ -122,12 +129,11 @@ export default function Home({ navigation }) {
         type: 'store',
         item,
         storeId: item.id,
-        index: indice,
       });
     });
 
     return [...cabecalho, ...itensComAnuncios];
-  }, [resultados, itensMenu, termoBusca, buscaExecutada, carregando]);
+  }, [resultados, itensMenu, termoBusca, buscaExecutada, carregando, isHome]);
 
   const renderizarItem = ({ item }) => {
     switch (item.type) {
@@ -157,15 +163,13 @@ export default function Home({ navigation }) {
         return (
           <Item
             item={item.item}
-            index={item.index}
-            results={resultados}
-            searchQuery={termoBusca}
             onPress={(loja) => {
               setItemSelecionado(loja);
               modalRef.current?.present();
             }}
             colors={colors}
-            ITENS_FIXOS_NO_TOPO={ITENS_FIXOS_NO_TOPO}
+            searchQuery={termoBusca.trim()} // string vazia ou com termo
+            isHome={isHome} // ← AQUI: só mostra "Destaque" na home
           />
         );
       default:
@@ -184,7 +188,7 @@ export default function Home({ navigation }) {
     return () => handler.remove();
   }, [itemSelecionado]);
 
-  // NOVO: Loading overlay quando está carregando a lista inicial ou busca
+  // Loading states
   const mostrarLoadingInicial = carregando && resultados.length === 0 && !buscaExecutada;
   const mostrarLoadingBusca = carregando && buscaExecutada;
 
@@ -224,7 +228,7 @@ export default function Home({ navigation }) {
           }
         />
 
-        {/* Loading inicial (tela branca com spinner) */}
+        {/* Loading inicial */}
         {mostrarLoadingInicial && (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color={colors.botao} />

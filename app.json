@@ -2,7 +2,7 @@
   "expo": {
     "name": "Busca Zap Teresina",
     "slug": "buscazap",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -16,6 +16,7 @@
       "supportsTablet": true
     },
     "android": {
+      "versionCode": 2,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -25,6 +26,13 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "updates": {
+      "enabled": true,
+      "url": "https://u.expo.dev/cb5636e5-0ba9-41f6-a203-0abecd5b839c"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     },
     "plugins": [
       [
