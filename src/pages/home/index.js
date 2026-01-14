@@ -43,11 +43,8 @@ export default function Home({ navigation }) {
   const {
     resultados,
     carregando,
-    carregandoMais,
     atualizando,
-    temMais,
     executarBusca: executarBuscaHook,
-    carregarMais,
     voltarParaListaInicial,
     recarregar,
   } = Carregamentos();
@@ -191,10 +188,7 @@ export default function Home({ navigation }) {
     return () => handler.remove();
   }, [itemSelecionado]);
 
-<<<<<<< HEAD
   // Loading states
-=======
->>>>>>> eb7f11d2395b642a1271e36c0418c8602c3b558d
   const mostrarLoadingInicial = carregando && resultados.length === 0 && !buscaExecutada;
   const mostrarLoadingBusca = carregando && buscaExecutada;
 
@@ -223,54 +217,18 @@ export default function Home({ navigation }) {
             }
             return <View style={{ borderBottomWidth: 0.5, borderBottomColor: colors.border }} />;
           }}
-          refreshControl={
-            <RefreshControl
-              refreshing={atualizando}
-              onRefresh={recarregar}
-              tintColor={colors.primary}
-              colors={[colors.primary]}
-            />
+          ListFooterComponent={
+            <View style={{ borderTopWidth: 0.5, borderTopColor: colors.border, paddingVertical: 22 }}>
+              <Text style={{ textAlign: 'center' }}>Busca Zap Teresina</Text>
+              <Text style={{ textAlign: 'center', color: colors.text + '70', fontSize: 12 }}>@2025</Text>
+            </View>
           }
-          ListFooterComponent={() => (
-            <>
-
-
-              {temMais && (
-                <Pressable
-                  onPress={carregarMais}
-                  disabled={carregandoMais}
-                  style={{ paddingTop: 40,paddingBottom:12, alignItems: 'center' }}
-                >
-                  {carregandoMais ? (
-                    <ActivityIndicator size="small" color={colors.primary} />
-                  ) : (
-                    <Text style={{ color: '#fff', fontWeight: '500', backgroundColor:colors.botao, paddingVertical:12, paddingHorizontal:22, elevation:5, borderRadius:32 }}>
-                      {buscaExecutada ? 'Carregar mais resultados' : 'Ver mais'}
-                    </Text>
-                  )}
-                </Pressable>
-              )}
-
-              {!temMais && resultados.length > 0 && !carregando && (
-                <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-                  <Text style={{ color: colors.text + '80', fontSize: 14 }}>
-                    Todos os resultados exibidos
-                  </Text>
-                </View>
-              )}
-
-                            <View style={{ borderTopWidth: 0.5, borderTopColor: colors.border, paddingVertical: 22 }}>
-                <Text style={{ textAlign: 'center' }}>Busca Zap Teresina</Text>
-                <Text style={{ textAlign: 'center', color: colors.text + '70', fontSize: 12 }}>@2025</Text>
-              </View>
-            </>
-          )}
+          refreshControl={
+            <RefreshControl refreshing={atualizando} onRefresh={recarregar} tintColor={colors.primary} />
+          }
         />
 
-<<<<<<< HEAD
         {/* Loading inicial */}
-=======
->>>>>>> eb7f11d2395b642a1271e36c0418c8602c3b558d
         {mostrarLoadingInicial && (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color={colors.botao} />
@@ -278,6 +236,7 @@ export default function Home({ navigation }) {
           </View>
         )}
 
+        {/* Loading durante busca */}
         {mostrarLoadingBusca && (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color={colors.botao} />
