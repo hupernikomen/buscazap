@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { getHorarioStatus } from '../utils/carregaHorarios';
 
 export const Item = ({ 
@@ -10,25 +9,50 @@ export const Item = ({
   onPress, 
   colors, 
   searchQuery,
-  // Nova prop: só mostra destaque na home
-  isHome = false  // true quando não há busca ativa
+  isDestaque = false
 }) => {
-
-  // Agora usamos a flag que veio do backend da ordenação
-  const isDestaque = isHome && item._isDestaque === true;
 
   const isPremium = item?.anuncio?.premium === true;
   const isBusca = item?.anuncio?.busca === true;
 
-  // Cor do nome: destaque visual para anúncios pagos
   const nomeCor =
     (searchQuery?.trim() && isBusca) || (!searchQuery?.trim() && isPremium)
       ? colors.destaque
       : colors.primary;
 
-  const horarioStatus = getHorarioStatus(item.horarios);
-
   const temAnuncioAtivo = isPremium || (isBusca && searchQuery?.trim());
+
+  // === CÁLCULO DO STATUS GLOBAL DA LOJA ===
+  let statusGlobal = { text: 'Fechado', isOpen: false };
+
+  if (item.filiais && Array.isArray(item.filiais) && item.filiais.length > 0) {
+    // Verifica se pelo menos uma filial está aberta
+    const algumaAberta = item.filiais.some(filial => {
+      if (!filial.horarios) return false;
+      const status = getHorarioStatus(filial.horarios);
+      return status.isOpen && !status.emIntervalo; // emIntervalo conta como fechado temporariamente
+    });
+
+    if (algumaAberta) {
+      // Usa o status da primeira filial aberta para o texto detalhado
+      const primeiraAberta = item.filiais.find(filial => {
+        if (!filial.horarios) return false;
+        const status = getHorarioStatus(filial.horarios);
+        return status.isOpen && !status.emIntervalo;
+      });
+
+      if (primeiraAberta) {
+        statusGlobal = getHorarioStatus(primeiraAberta.horarios);
+      } else {
+        statusGlobal = { text: 'Aberto', isOpen: true };
+      }
+    }
+  } else if (item.horarios) {
+    // Compatibilidade com estrutura antiga (horarios no root)
+    statusGlobal = getHorarioStatus(item.horarios);
+  }
+
+  const { text: horarioText } = statusGlobal;
 
   return (
     <TouchableOpacity
@@ -40,18 +64,17 @@ export const Item = ({
         <View style={styles.header}>
           <View>
             {isDestaque && (
-              <Text style={{ color: colors.destaque, fontWeight: '500' }}>
+              <Text style={styles.destaqueText}>
                 Destaque
               </Text>
             )}
+
             <Text style={[styles.nome, { color: nomeCor }]} numberOfLines={1}>
               {item.nome}
             </Text>
           </View>
 
-          {isDestaque && (
-            <Ionicons name="ribbon-outline" size={16} color={colors.text} />
-          )}
+          <View />
         </View>
 
         {item.descricao ? (
@@ -65,10 +88,8 @@ export const Item = ({
             <View style={styles.infoRow}>
               <Text style={[styles.infoText, { color: colors.suave }]}>
                 {(() => {
-                  const text = horarioStatus.text;
-
-                  if (text.startsWith('Aberto - Fecha às')) {
-                    const resto = text.slice('Aberto - '.length);
+                  if (horarioText.startsWith('Aberto - Fecha às')) {
+                    const resto = horarioText.slice('Aberto - '.length);
                     return (
                       <>
                         <Text style={{ color: colors.botao, fontWeight: '500' }}>Aberto</Text>
@@ -77,7 +98,7 @@ export const Item = ({
                     );
                   }
 
-                  return text;
+                  return horarioText;
                 })()}
               </Text>
             </View>
@@ -104,9 +125,16 @@ const styles = StyleSheet.create({
   content: {},
   header: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: 10,
+  },
+  destaqueText: {
+    fontSize: 10,
+    color: '#dd8b06ff',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   nome: {
     fontSize: 18,

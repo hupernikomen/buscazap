@@ -1,3 +1,5 @@
+// src/utils/rankingDeBusca.js
+
 import { normalize } from './normalize';
 
 const STOP_WORDS = new Set([
@@ -10,134 +12,112 @@ const STOP_WORDS = new Set([
   'vos', 'mim', 'ti', 'si', 'contigo', 'consigo', 'meu', 'minha', 'meus', 'minhas',
   'teu', 'tua', 'teus', 'tuas', 'seu', 'sua', 'seus', 'suas', 'nosso', 'nossa',
   'nossos', 'nossas', 'já', 'ainda', 'só', 'apenas', 'quando', 'onde', 'como', 'porque',
-  'assim', 'então', 'agora', 'aqui', 'ali', 'lá', 'cá', 'bem', 'mal', 'sim', 'é', 'era',
-  'foi', 'ser', 'está', 'estão', 'estar', 'tem', 'têm', 'ter', 'havia', 'há', 'vai',
-  'eu', 'tu', 'ele', 'ela', 'nós', 'vós', 'eles', 'elas', 'outro', 'outra', 'outros',
-  'outras', 'mesmo', 'mesma', 'mesmos', 'mesmas'
+  'assim', 'então', 'agora', 'aqui', 'ali', 'lá', 'cá', 'bem', 'mal', 'sim'
 ]);
 
-// Parâmetros BM25 (valores padrão comuns + BM25+ com delta)
 const k1 = 1.2;
 const b = 0.75;
 const delta = 1.0;
 
-// Pesos por campo (ajustáveis)
-const PESO_NOME = 3.0;    // Mais importante que descrição, menos que tags
-const PESO_TAGS = 4.0;    // Mais específico
-const PESO_DESC = 1.0;    // Menos específico
+const PESO_NOME = 6.0;
+const PESO_TAGS = 4.5;
+const PESO_DESCRICAO = 1.0;
 
 export function rankingDeBusca(dados, termo) {
-  if (!termo?.trim() || dados.length === 0) return [];
+  if (!termo?.trim() || dados.length === 0) return dados;
 
-  const termoNormalizado = normalize(termo).trim();
+  const termoNormalizado = normalize(termo).toLowerCase().trim();
 
-  const palavrasQuery = termoNormalizado
+  const palavrasBusca = termoNormalizado
     .split(/\s+/)
-    .filter(palavra => palavra.length >= 3 && !STOP_WORDS.has(palavra))
-    .filter(Boolean);
+    .filter(palavra => !STOP_WORDS.has(palavra));
 
-  if (palavrasQuery.length === 0) return [];
+  if (palavrasBusca.length === 0) return dados;
 
-  const termoCompletoSemStops = palavrasQuery.join(' ');
-  const regexPalavras = palavrasQuery.map(word => new RegExp(`\\b${word}\\b`, 'g'));
-  const regexFraseSemStops = new RegExp(`\\b${termoCompletoSemStops}\\b`);
+  const isBuscaPorUmaPalavra = palavrasBusca.length === 1;
 
-  const N = dados.length;
+  const totalDocumentos = dados.length;
 
-  // Pré-processamento: normaliza e tokeniza os campos de cada item
   const documentos = dados.map(item => {
-    const nome = item.nome ? normalize(item.nome) : '';
-    const tags = Array.isArray(item.tags) ? normalize(item.tags.join(' ')) : '';
-    const desc = item.descricao ? normalize(item.descricao) : '';
 
-    const tokensNome = nome.split(/\s+/).filter(Boolean);
-    const tokensTags = tags.split(/\s+/).filter(Boolean);
-    const tokensDesc = desc.split(/\s+/).filter(Boolean);
-
-    const textoCompleto = `${nome} ${tags} ${desc}`.trim();
-
+    
+    const nome = normalize(item.nome || '').toLowerCase();
+    const tags = Array.isArray(item.tags) ? normalize(item.tags.join(' ')).toLowerCase() : '';
+    const descricao = normalize(item.descricao || '').toLowerCase();
+    
+    const textoCompleto = `${nome} ${tags} ${descricao}`;
+    
     return {
       item,
       nome,
       tags,
-      desc,
-      tokensNome,
-      tokensTags,
-      tokensDesc,
+      descricao,
       textoCompleto,
-      dlNome: tokensNome.length,
-      dlTags: tokensTags.length,
-      dlDesc: tokensDesc.length,
+      temAnuncioBusca: !!item.anuncio?.busca,
+      temPremium: !!item.anuncio?.premium,
     };
   });
 
-  // Cálculo do avgdl por campo
-  const avgdlNome = documentos.reduce((sum, doc) => sum + doc.dlNome, 0) / N || 1;
-  const avgdlTags = documentos.reduce((sum, doc) => sum + doc.dlTags, 0) / N || 1;
-  const avgdlDesc = documentos.reduce((sum, doc) => sum + doc.dlDesc, 0) / N || 1;
-
-  // Document Frequency correto (com word boundaries)
-  const docFreq = {};
-  palavrasQuery.forEach(word => {
-    const regex = new RegExp(`\\b${word}\\b`);
-    docFreq[word] = documentos.filter(doc => regex.test(doc.textoCompleto)).length;
+  // Document Frequency
+  const df = {};
+  palavrasBusca.forEach(palavra => {
+    df[palavra] = documentos.filter(doc => 
+      doc.nome.includes(palavra) || 
+      doc.tags.includes(palavra) || 
+      doc.descricao.includes(palavra)
+    ).length;
   });
-
-  // Função auxiliar para calcular BM25 de um termo em um campo
-  function bm25Score(tf, dl, avgdl, df) {
+  
+  const calcularBM25 = (tf, dl, avgdl, df) => {
     if (tf === 0) return 0;
-    const idf = Math.log((N - df + 0.5) / (df + 0.5) + 1);
-    const norm = (tf * (k1 + 1)) / (tf + k1 * (1 - b + b * (dl / avgdl)));
+    const idf = Math.log((totalDocumentos - df + 0.5) / (df + 0.5) + 1);
+    const norm = tf * (k1 + 1) / (tf + k1 * (1 - b + b * (dl / avgdl)));
     return idf * (norm + delta);
-  }
+  };
 
-  const itensComScore = documentos.map(doc => {
-    let scoreNome = 0;
-    let scoreTags = 0;
-    let scoreDesc = 0;
+  const scored = documentos.map(doc => {
+    let score = 0;
 
-    palavrasQuery.forEach((word, i) => {
-      const regex = regexPalavras[i];
-      const tfNome = (doc.nome.match(regex) || []).length;
-      const tfTags = (doc.tags.match(regex) || []).length;
-      const tfDesc = (doc.desc.match(regex) || []).length;
+    palavrasBusca.forEach(palavra => {
+      const tfNome = (doc.nome.match(new RegExp(palavra, 'g')) || []).length;
+      const tfTags = (doc.tags.match(new RegExp(palavra, 'g')) || []).length;
+      const tfDescricao = (doc.descricao.match(new RegExp(palavra, 'g')) || []).length;
 
-      scoreNome += bm25Score(tfNome, doc.dlNome, avgdlNome, docFreq[word]);
-      scoreTags += bm25Score(tfTags, doc.dlTags, avgdlTags, docFreq[word]);
-      scoreDesc += bm25Score(tfDesc, doc.dlDesc, avgdlDesc, docFreq[word]);
+      const avgNome = 5;
+      const avgTags = 8;
+      const avgDesc = 20;
+
+      score += calcularBM25(tfNome, doc.nome.split(/\s+/).length || 1, avgNome, df[palavra]) * PESO_NOME;
+      score += calcularBM25(tfTags, doc.tags.split(/\s+/).length || 1, avgTags, df[palavra]) * PESO_TAGS;
+      score += calcularBM25(tfDescricao, doc.descricao.split(/\s+/).length || 1, avgDesc, df[palavra]) * PESO_DESCRICAO;
     });
 
-    // Score final ponderado por campo
-    let score = 
-      scoreNome * PESO_NOME +
-      scoreTags * PESO_TAGS +
-      scoreDesc * PESO_DESC;
-
-    if (score === 0) return null;
-
-    // Boosts comerciais
-    if (doc.item?.anuncio?.busca) {
-      score *= 3.0;
-    } else if (doc.item?.anuncio?.premium) {
-      score *= 1.5;
+    // Boosts
+    if (isBuscaPorUmaPalavra && doc.nome.includes(palavrasBusca[0])) {
+      score *= 4.0;
     }
 
-    // Boost por frase exata (sem stop words)
-    if (regexFraseSemStops.test(doc.nome) || 
-        regexFraseSemStops.test(doc.tags) || 
-        regexFraseSemStops.test(doc.desc)) {
+    if (doc.textoCompleto.includes(termoNormalizado)) {
+      score *= 2.5;
+    }
+
+    if (doc.temAnuncioBusca && score > 0) {
+      score *= 20;
+    } else if (doc.temPremium) {
       score *= 2.0;
     }
 
-    // Boost leve se a query original normalizada aparecer inteira em qualquer campo
-    if (doc.textoCompleto.includes(termoNormalizado)) {
-      score *= 1.3;
-    }
-
     return { item: doc.item, score };
-  }).filter(Boolean);
+  });
 
-  itensComScore.sort((a, b) => b.score - a.score);
+  // ORDENA POR SCORE (mesmo se score for baixo)
+  scored.sort((a, b) => b.score - a.score);
 
-  return itensComScore.map(x => x.item);
+  const resultados = scored.map(s => s.item);
+
+  console.log(dados);
+
+
+  // Se nenhum item tiver score (raro), retorna tudo
+  return resultados.length > 0 ? resultados : dados;
 }

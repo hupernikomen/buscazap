@@ -1,121 +1,76 @@
 // src/hooks/carregamentos.js
 
 import { useState, useEffect, useCallback } from 'react';
-import { carregaListaInicial } from '../utils/carregaListaInicial';
-import { rankingSimples } from '../utils/rankingSimples';
-import { fetchStoresPaginado } from '../services/firebaseConnection/firestoreService';
-
-const ITENS_FIXOS_NO_TOPO = 2;
+import { fetchAllStores } from '../services/firebaseConnection/firestoreService';
+import { buscaInteligente } from '../utils/buscaInteligente'; // ← NOVA IMPORTAÇÃO
 
 export default function Carregamentos() {
   const [resultados, setResultados] = useState([]);
+  const [todosOsItens, setTodosOsItens] = useState([]);
   const [carregando, setCarregando] = useState(true);
-  const [carregandoMais, setCarregandoMais] = useState(false);
-  const [atualizando, setAtualizando] = useState(false); // ← Para o RefreshControl
-  const [temMais, setTemMais] = useState(false);
+  const [atualizando, setAtualizando] = useState(false);
   const [termoAtual, setTermoAtual] = useState('');
 
   const carregarInicial = useCallback(async () => {
     setCarregando(true);
-    setResultados([]);
-
     try {
-      const { dados, temMais: temMaisAgora } = await fetchStoresPaginado('', true);
-      const lista = carregaListaInicial(dados, ITENS_FIXOS_NO_TOPO);
-      setResultados(lista);
-      setTemMais(temMaisAgora);
+      const dados = await fetchAllStores();
+      setTodosOsItens(dados);
+      setResultados(dados);
       setTermoAtual('');
     } catch (error) {
-      console.error('Erro ao carregar inicial:', error);
+      console.error('Erro ao carregar lojas:', error);
+      setTodosOsItens([]);
       setResultados([]);
-      setTemMais(false);
     } finally {
       setCarregando(false);
     }
   }, []);
 
-  useEffect(() => {
-    carregarInicial();
-  }, [carregarInicial]);
-
-  const executarBusca = useCallback(async (termo) => {
+  const executarBusca = useCallback((termo) => {
     if (!termo.trim()) {
-      carregarInicial();
+      setResultados(todosOsItens);
+      setTermoAtual('');
       return;
     }
 
     setTermoAtual(termo.trim());
-    setCarregando(true);
-    setResultados([]);
-
-    try {
-      const { dados, temMais: temMaisAgora } = await fetchStoresPaginado(termo.trim(), true);
-      const ordenados = rankingSimples(dados, termo.trim());
-      setResultados(ordenados);
-      setTemMais(temMaisAgora);
-    } catch (error) {
-      console.error('Erro na busca:', error);
-      setResultados([]);
-    } finally {
-      setCarregando(false);
-    }
-  }, [carregarInicial]);
-
-  const carregarMais = useCallback(async () => {
-    if (!temMais || carregandoMais) return;
-
-    setCarregandoMais(true);
-    try {
-      const termoParaUsar = termoAtual || '';
-      const { dados, temMais: temMaisAgora } = await fetchStoresPaginado(termoParaUsar);
-      
-      let novosItens = dados;
-      if (termoParaUsar === '') {
-        novosItens = carregaListaInicial(dados, ITENS_FIXOS_NO_TOPO);
-      } else {
-        novosItens = rankingSimples(dados, termoParaUsar);
-      }
-
-      setResultados(prev => [...prev, ...novosItens]);
-      setTemMais(temMaisAgora);
-    } catch (error) {
-      console.error('Erro ao carregar mais:', error);
-    } finally {
-      setCarregandoMais(false);
-    }
-  }, [temMais, carregandoMais, termoAtual]);
+    const resultados = buscaInteligente(todosOsItens, termo.trim());
+    setResultados(resultados);
+  }, [todosOsItens]);
 
   const recarregar = useCallback(async () => {
     setAtualizando(true);
-
     try {
+      const dados = await fetchAllStores();
+      setTodosOsItens(dados);
+
       if (termoAtual) {
-        await executarBusca(termoAtual);
+        const resultados = buscaInteligente(dados, termoAtual);
+        setResultados(resultados);
       } else {
-        await carregarInicial();
+        setResultados(dados);
       }
-    } catch (error) {
-      console.error('Erro ao recarregar:', error);
     } finally {
       setAtualizando(false);
     }
-  }, [termoAtual, executarBusca, carregarInicial]);
+  }, [termoAtual]);
 
   const voltarParaListaInicial = useCallback(() => {
     setTermoAtual('');
+    setResultados(todosOsItens);
+  }, [todosOsItens]);
+
+  useEffect(() => {
     carregarInicial();
   }, [carregarInicial]);
 
   return {
     resultados,
     carregando,
-    carregandoMais,
     atualizando,
-    temMais,
     executarBusca,
-    carregarMais,
     voltarParaListaInicial,
     recarregar,
-    ITENS_FIXOS_NO_TOPO
   };
 }

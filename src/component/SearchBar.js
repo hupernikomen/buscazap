@@ -1,5 +1,14 @@
-import React, { useRef } from 'react';
-import { View, TextInput, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+// src/component/SearchBar.js
+
+import React, { useRef, useEffect } from 'react';
+import {
+  View,
+  TextInput,
+  Pressable,
+  ActivityIndicator,
+  StyleSheet,
+  Animated,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function SearchBar({
@@ -14,9 +23,33 @@ export default function SearchBar({
   onChangeText,
 }) {
   const inputRef = useRef(null);
+  const animatedValue = useRef(new Animated.Value(0)).current;
 
+  // Tem texto digitado?
+  const temTexto = termoBusca.trim().length > 0;
+
+  // Mostra lupa se não tem texto OU se tem texto mas busca ainda não foi executada
   const mostrarLupa = !buscaExecutada;
   const iconeNome = mostrarLupa ? 'search' : 'close';
+
+  // Animação: aparece quando tem texto ou busca executada
+  useEffect(() => {
+    Animated.timing(animatedValue, {
+      toValue: temTexto || buscaExecutada ? 1 : 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [temTexto, buscaExecutada]);
+
+  const translateX = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [60, 0], // desliza da direita para a posição correta
+  });
+
+  const opacity = animatedValue.interpolate({
+    inputRange: [0, 0.6, 1],
+    outputRange: [0, 0.3, 1],
+  });
 
   const handlePressBar = () => inputRef.current?.focus();
 
@@ -36,22 +69,56 @@ export default function SearchBar({
             onSubmitEditing={onExecutarBusca}
           />
         </Pressable>
-        <Pressable style={styles.button} onPress={mostrarLupa ? onExecutarBusca : onLimparBusca}>
-          {carregando && buscaExecutada ? (
-            <ActivityIndicator color={colors.primary} />
-          ) : (
-            <Ionicons name={iconeNome} size={24} color={colors.text} />
-          )}
-        </Pressable>
+
+        {/* Botão animado (lupa ou X) */}
+        <Animated.View style={{ opacity, transform: [{ translateX }] }}>
+          <Pressable
+            style={styles.button}
+            onPress={mostrarLupa ? onExecutarBusca : onLimparBusca}
+          >
+            {carregando && buscaExecutada ? (
+              <ActivityIndicator color={colors.primary} size="small" />
+            ) : (
+              <Ionicons name={iconeNome} size={24} color={colors.text} />
+            )}
+          </Pressable>
+        </Animated.View>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { paddingBottom: 16, paddingTop: 12, paddingHorizontal: 22 },
-  shadow: { elevation: 3, borderBottomLeftRadius: 22, borderBottomRightRadius: 22 },
-  bar: { borderRadius: 35, height: 50, flexDirection: 'row', alignItems: 'center', paddingLeft: 22 },
-  input: { flex: 1, fontSize: 16, height: 50 },
-  button: { width: 45, height: 45, margin: 2, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', borderRadius: 30 },
+  container: {
+    paddingBottom: 6,
+    paddingTop: 6,
+    paddingHorizontal: 22,
+  },
+  shadow: {
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+  },
+  bar: {
+    borderRadius: 35,
+    height: 55,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 22,
+    overflow: 'hidden',
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    height: 55,
+    paddingVertical: 0,
+  },
+  button: {
+    width: 55,
+    height: 55,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 30,
+  },
 });

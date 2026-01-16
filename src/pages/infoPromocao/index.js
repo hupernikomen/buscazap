@@ -1,21 +1,22 @@
 // src/pages/promocao/InfoPromocao.js
+
 import React from 'react';
 import {
   View,
   Text,
   ScrollView,
-  StyleSheet,
   Pressable,
-  Linking, // ← Importado para abrir o WhatsApp
+  StyleSheet,
+  Linking,
 } from 'react-native';
 import { useTheme } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 
-const NUMERO_WHATSAPP = '86994773403'; // Número sem +55 ou espaços
+const NUMERO_WHATSAPP = '86994773403'; // Seu número para contato
 
 export default function InfoPromocao({ navigation }) {
   const { colors } = useTheme();
 
-  // Função para abrir WhatsApp com mensagem pré-pronta
   const abrirWhatsApp = (plano) => {
     let mensagem = '';
 
@@ -25,7 +26,7 @@ export default function InfoPromocao({ navigation }) {
       mensagem = `Olá! Gostaria de contratar o plano *Anúncio no Topo da Busca* por R$ 7,90 (30 dias). Quero aparecer no topo quando as pessoas buscarem pelas minhas palavras-chave.`;
     }
 
-    const url = `https://wa.me/${NUMERO_WHATSAPP}?text=${encodeURIComponent(mensagem)}`;
+    const url = `https://wa.me/55${NUMERO_WHATSAPP}?text=${encodeURIComponent(mensagem)}`;
 
     Linking.openURL(url).catch(() => {
       alert('Não foi possível abrir o WhatsApp. Verifique se o app está instalado.');
@@ -33,77 +34,86 @@ export default function InfoPromocao({ navigation }) {
   };
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false} style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Título principal */}
+    <ScrollView
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* Cabeçalho */}
       <View style={styles.header}>
-        <Text style={styles.title}>Coloque seu anúncio no topo</Text>
-        <Text style={styles.subtitle}>e receba mais mensagens no WhatsApp todos os dias</Text>
+        <Text style={styles.title}>Aumente suas vendas com destaque</Text>
+        <Text style={styles.subtitle}>
+          Apareça no topo e receba mais mensagens no WhatsApp todos os dias
+        </Text>
       </View>
 
       {/* Introdução */}
-      <View style={styles.introContainer}>
-        <Text style={styles.introText}>
-          {`O Busca Zap é usado por centenas de pessoas todos os dias em Teresina para encontrar produtos e serviços e falar direto no seu WhatsApp. 
-          Com um plano de destaque, seu anuncio aparece primeiro — aumentando muito suas chances de contato com clientes.`}
-        </Text>
-      </View>
+      <Text style={styles.introText}>
+        Centenas de pessoas usam o Busca Zap Teresina diariamente para encontrar produtos e serviços.
+        Com um plano de destaque, seu anúncio aparece primeiro — aumentando muito suas chances de contato com clientes interessados.
+      </Text>
 
-      {/* Plano 1 - Anúncio Fixo */}
-      <View style={styles.planCard}>
-        <Text style={styles.planBadge}>MAIS VISIBILIDADE</Text>
+      {/* Plano Fixo no Topo */}
+      <View style={styles.planContainer}>
+        <View style={styles.planHeader}>
+          <Text style={styles.planBadge}>MAIS VISIBILIDADE</Text>
+        </View>
         <Text style={styles.planTitle}>Anúncio Fixo no Topo</Text>
-        <Text style={styles.planPrice}>R$ 14,90 por 30 dias</Text>
+        <Text style={styles.planPrice}>R$ 14,90 <Text style={{ fontSize: 16, fontWeight: '400' }}>por 30 dias</Text></Text>
 
         <Text style={styles.planDescription}>
-          Seu anúncio fica sempre visível no topo da tela inicial do app.
+          Seu anúncio fica sempre visível no topo da tela inicial do app, mesmo quando o usuário não está buscando nada.
         </Text>
 
         <Text style={styles.planHighlight}>
-          Perfeito para quem quer fortalecer a marca e ser lembrado como referência na cidade.
+          Ideal para fortalecer sua marca e ser lembrado como referência na cidade.
         </Text>
 
-        <Pressable 
+        <Pressable
           style={[styles.actionButton, { backgroundColor: colors.botao }]}
-          onPress={() => abrirWhatsApp('fixo')} // ← Abre WhatsApp com mensagem do plano fixo
+          onPress={() => abrirWhatsApp('fixo')}
         >
-          <Text style={styles.actionText}>Quero este</Text>
+          <Ionicons name="logo-whatsapp" size={22} color="#fff" />
+          <Text style={styles.actionText}>Quero este plano</Text>
         </Pressable>
       </View>
 
-      {/* Plano 2 - Anúncio de Busca */}
-      <View style={styles.planCard}>
-        <Text style={styles.planBadge}>MAIS VENDAS</Text>
+      {/* Plano Topo da Busca */}
+      <View style={styles.planContainer}>
+        <View style={styles.planHeader}>
+          <Text style={[styles.planBadge, { backgroundColor: '#4CAF50' }]}>MAIS VENDAS</Text>
+        </View>
         <Text style={styles.planTitle}>Anúncio no Topo da Busca</Text>
-        <Text style={styles.planPrice}>R$ 7,90 por 30 dias</Text>
+        <Text style={styles.planPrice}>R$ 7,90 <Text style={{ fontSize: 16, fontWeight: '400' }}>por 30 dias</Text></Text>
 
         <Text style={styles.planDescription}>
-          Quando alguém buscar por palavras que você definiu nas palavras-chave do seu anúncio (como "pizza", "farmácia", "entrega" etc.), seu anúncio aparecerá no topo dos resultados.
+          Seu anúncio aparece no topo dos resultados quando alguém busca por palavras relacionadas ao seu negócio (pizza, farmácia, entrega, etc.).
         </Text>
 
         <Text style={styles.planHighlight}>
-          Ideal para quem quer receber mensagens de clientes já prontos para negociar.
+          Perfeito para quem quer receber mensagens de clientes já prontos para comprar.
         </Text>
 
-        <Pressable 
+        <Pressable
           style={[styles.actionButton, { backgroundColor: colors.botao }]}
-          onPress={() => abrirWhatsApp('busca')} // ← Abre WhatsApp com mensagem do plano busca
+          onPress={() => abrirWhatsApp('busca')}
         >
-          <Text style={styles.actionText}>Quero este</Text>
+          <Ionicons name="logo-whatsapp" size={22} color="#fff" />
+          <Text style={styles.actionText}>Quero este plano</Text>
         </Pressable>
       </View>
 
-      {/* Rodapé tranquilizador */}
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>
-          • Sem contrato de fidelidade{'\n'}
-          • Você escolhe quanto tempo quer ficar em destaque{'\n'}
-          • Pagamento mensal simples via PIX{'\n'}
-          • Suporte direto por WhatsApp
-        </Text>
-        <Text style={styles.footerCall}>
-          Comece hoje e veja o seu WhatsApp tocar mais!
-        </Text>
+      {/* Vantagens finais */}
+      <View style={styles.benefitsContainer}>
+        <Text style={styles.benefitsTitle}>Tudo simples e sem complicação:</Text>
+        <Text style={styles.benefitItem}>• Sem contrato ou fidelidade</Text>
+        <Text style={styles.benefitItem}>• Você escolhe quanto tempo quer anunciar</Text>
+        <Text style={styles.benefitItem}>• Pagamento fácil via PIX</Text>
+        <Text style={styles.benefitItem}>• Suporte direto por WhatsApp</Text>
       </View>
+
+      <Text style={styles.finalCall}>
+        Comece hoje mesmo e veja seu WhatsApp tocar mais!
+      </Text>
 
       <View style={{ height: 60 }} />
     </ScrollView>
@@ -111,68 +121,72 @@ export default function InfoPromocao({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 40,
+    backgroundColor: '#f9f9f9',
   },
   header: {
-    paddingHorizontal: 30,
-    paddingTop: 40,
-    paddingBottom: 20,
     alignItems: 'center',
+    marginBottom: 32,
   },
   title: {
-    fontSize: 30,
-    fontWeight: '800',
+    fontSize: 26,
+    fontWeight: '700',
     textAlign: 'center',
-    lineHeight: 38,
     color: '#333',
+    lineHeight: 34,
   },
   subtitle: {
-    fontSize: 18,
+    fontSize: 17,
     textAlign: 'center',
-    marginTop: 12,
     color: '#555',
-    lineHeight: 26,
-  },
-  introContainer: {
-    paddingHorizontal: 30,
-    marginVertical: 40,
+    marginTop: 12,
+    lineHeight: 24,
   },
   introText: {
-    fontSize: 16.5,
-    lineHeight: 26,
+    fontSize: 16,
+    lineHeight: 25,
     textAlign: 'center',
     color: '#444',
+    marginBottom: 40,
+    paddingHorizontal: 10,
   },
-  planCard: {
-    marginHorizontal: 24,
-    marginBottom: 32,
-    padding: 28,
+  planContainer: {
     backgroundColor: '#fff',
-    borderRadius: 24,
+    borderRadius: 18,
+    paddingVertical: 28,
+    paddingHorizontal: 24,
+    marginBottom: 32,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
     alignItems: 'center',
-    elevation: 6,
+  },
+  planHeader: {
+    marginBottom: 16,
   },
   planBadge: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#FFF',
+    color: '#fff',
     backgroundColor: '#FF6B6B',
     paddingHorizontal: 16,
     paddingVertical: 6,
     borderRadius: 20,
     alignSelf: 'center',
-    marginBottom: 16,
   },
   planTitle: {
-    fontSize: 24,
-    fontWeight: '800',
+    fontSize: 22,
+    fontWeight: '700',
     textAlign: 'center',
     marginBottom: 8,
+    color: '#333',
   },
   planPrice: {
-    fontSize: 18,
-    fontWeight: '500',
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#333',
     marginBottom: 20,
   },
   planDescription: {
@@ -181,43 +195,61 @@ const styles = StyleSheet.create({
     color: '#555',
     lineHeight: 24,
     marginBottom: 16,
+    paddingHorizontal: 10,
   },
   planHighlight: {
     fontSize: 16,
     textAlign: 'center',
-    fontWeight: '600',
     color: '#333',
+    fontWeight: '600',
     lineHeight: 24,
-    marginBottom: 28,
+    marginBottom: 32,
+    paddingHorizontal: 10,
   },
   actionButton: {
-    width: '100%',
-    paddingVertical: 18,
-    borderRadius: 30,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    paddingVertical: 18,
+    paddingHorizontal: 32,
+    borderRadius: 50,
+    width: '100%',
   },
   actionText: {
-    color: '#FFF',
+    color: '#fff',
     fontSize: 17,
-    fontWeight: '700',
+    fontWeight: '600',
   },
-  footer: {
-    paddingHorizontal: 30,
-    paddingVertical: 40,
+  benefitsContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    paddingVertical: 28,
+    paddingHorizontal: 24,
+    marginBottom: 32,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
     alignItems: 'center',
-    backgroundColor: '#f9f9f9',
   },
-  footerText: {
-    fontSize: 15.5,
-    color: '#666',
-    textAlign: 'center',
-    lineHeight: 24,
+  benefitsTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#333',
     marginBottom: 20,
+    textAlign: 'center',
   },
-  footerCall: {
+  benefitItem: {
+    fontSize: 16,
+    color: '#555',
+    lineHeight: 26,
+    textAlign: 'center',
+  },
+  finalCall: {
     fontSize: 19,
     fontWeight: '700',
     textAlign: 'center',
     color: '#333',
+    lineHeight: 28,
+    paddingHorizontal: 20,
   },
 });
