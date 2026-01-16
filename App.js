@@ -7,13 +7,10 @@ import Home from './src/pages/home';
 import Proposta from './src/pages/proposta';
 import InfoPromocao from './src/pages/infoPromocao';
 
-import * as Updates from 'expo-updates';
-
-
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Platform } from 'react-native';
-import { useEffect } from 'react';
+import Detalhe from './src/pages/detalhe';
 
 const Stack = createStackNavigator();
 
@@ -35,21 +32,6 @@ const Tema = {
 export default function App() {
 
 
-  useEffect(() => {
-    async function check() {
-      try {
-        const update = await Updates.checkForUpdateAsync();
-        console.log('Update disponível:', update);
-        if (update.isAvailable) {
-          await Updates.fetchUpdateAsync();
-          await Updates.reloadAsync();
-        }
-      } catch (e) {
-        console.log('Erro no update:', e);
-      }
-    }
-    check();
-  }, []);
 
 
   return (
@@ -72,6 +54,7 @@ export default function App() {
           <Stack.Screen name="Home" component={Home} options={{ headerShown: false }} />
           <Stack.Screen name="Proposta" component={Proposta} options={{ headerShadowVisible: false, title: '', animation: 'slide_from_left' }} />
           <Stack.Screen name="InfoPromocao" component={InfoPromocao} options={{ headerShadowVisible: false, title: '', animation: 'slide_from_left' }} />
+          <Stack.Screen name="Detalhe" component={Detalhe} options={{ headerShadowVisible: false, title: '', animation: 'slide_from_bottom' }} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaView>

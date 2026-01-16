@@ -1,21 +1,19 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+// src/pages/home.js
+
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   FlatList,
   StyleSheet,
   RefreshControl,
-  BackHandler,
   Text,
-  Pressable,
   ActivityIndicator,
 } from 'react-native';
 import { useTheme } from '@react-navigation/native';
-import { BottomSheetModal, BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { MobileAds } from 'react-native-google-mobile-ads';
 
 import { carregarItensMenu } from '../../utils/carregaItensMenu';
 import { Item } from '../../component/Item';
-import { DetalheDoItem } from '../../component/DetalheDoItem';
 
 import LogoHeader from '../../component/LogoHeader';
 import SearchBar from '../../component/SearchBar';
@@ -27,7 +25,7 @@ import Carregamentos from '../../hooks/carregamentos';
 
 MobileAds().initialize();
 
-const INTERVALO_ANUNCIO = 9;
+const INTERVALO_ANUNCIO = 15;
 const ITENS_ATE_PRIMEIRO_ANUNCIO = 3;
 
 export default function Home({ navigation }) {
@@ -35,10 +33,8 @@ export default function Home({ navigation }) {
   const [itensMenu, setItensMenu] = useState([]);
   const [buscaExecutada, setBuscaExecutada] = useState(false);
   const [showSearchShadow, setShowSearchShadow] = useState(false);
-  const [itemSelecionado, setItemSelecionado] = useState(null);
 
   const { colors } = useTheme();
-  const modalRef = useRef(null);
 
   const {
     resultados,
@@ -49,7 +45,6 @@ export default function Home({ navigation }) {
     recarregar,
   } = Carregamentos();
 
-  // Carrega menu horizontal
   useEffect(() => {
     const unsubscribe = carregarItensMenu(setItensMenu);
     return () => unsubscribe && unsubscribe();
@@ -74,8 +69,6 @@ export default function Home({ navigation }) {
     if (texto.trim() === '') {
       setBuscaExecutada(false);
       voltarParaListaInicial();
-    } else if (buscaExecutada) {
-      setBuscaExecutada(false);
     }
   };
 
@@ -84,7 +77,6 @@ export default function Home({ navigation }) {
     setShowSearchShadow(scrollY > 100);
   };
 
-  // Determina se estamos na tela inicial (home) ou em modo busca
   const isHome = !termoBusca.trim() || !buscaExecutada;
 
   const listaCompleta = useMemo(() => {
@@ -94,46 +86,126 @@ export default function Home({ navigation }) {
       isHome && itensMenu.length > 0 ? { type: 'menu_horizontal' } : null,
     ].filter(Boolean);
 
-    // Estados especiais
+    // Loading ou espera
     if (termoBusca.trim() && !buscaExecutada) return cabecalho;
-    if (carregando && buscaExecutada) return cabecalho;
-    if (buscaExecutada && resultados.length === 0 && !carregando) {
-      return [...cabecalho, { type: 'no_results', query: termoBusca.trim() }];
+    if (carregando) return cabecalho;
+
+    // Busca executada
+    if (buscaExecutada) {
+      if (resultados.length === 0) {
+        return [...cabecalho, { type: 'no_results', query: termoBusca.trim() }];
+      }
+
+      // NA BUSCA: mostra apenas os resultados ordenados pela busca (sem ordenação da home)
+      const itensBusca = resultados.map((item) => ({
+        type: 'store',
+        item,
+        storeId: item.id,
+        isDestaque: false, // na busca, não usa o destaque da home
+      }));
+
+      // Inserção de anúncios na busca
+      const itensComAnuncios = [];
+      let contador = 0;
+      let primeiroAnuncioInserido = false;
+
+      itensBusca.forEach((item, indice) => {
+        if (!primeiroAnuncioInserido && indice === ITENS_ATE_PRIMEIRO_ANUNCIO) {
+          itensComAnuncios.push({ type: 'ad', key: 'ad-primeiro' });
+          primeiroAnuncioInserido = true;
+        }
+
+        if (primeiroAnuncioInserido) {
+          contador++;
+          if (contador % INTERVALO_ANUNCIO === 0 && indice < itensBusca.length - 1) {
+            itensComAnuncios.push({ type: 'ad', key: `ad-${indice}` });
+          }
+        }
+
+        itensComAnuncios.push(item);
+      });
+
+      return [...cabecalho, ...itensComAnuncios];
     }
+
+    // TELA INICIAL (isHome)
     if (resultados.length === 0) return cabecalho;
 
-    // Inserção de anúncios na lista de resultados
+    // Ordenação da home (premium, destaques, cliques, aleatório)
+    const todosItens = [...resultados];
+
+    const premium = todosItens
+      .filter((item) => item.anuncio?.premium === true)
+      .sort((a, b) => (b.cliques || 0) - (a.cliques || 0));
+
+    const naoPremium = todosItens.filter((item) => item.anuncio?.premium !== true);
+
+    const topDestaques = [...naoPremium]
+      .sort((a, b) => (b.cliques || 0) - (a.cliques || 0))
+      .slice(0, 2);
+
+    const restantes = naoPremium.filter((item) => !topDestaques.includes(item));
+
+    const comCliques = restantes
+      .filter((item) => (item.cliques || 0) > 0)
+      .sort((a, b) => (b.cliques || 0) - (a.cliques || 0));
+
+    const semCliques = restantes.filter((item) => (item.cliques || 0) === 0);
+
+    const semCliquesEmbaralhados = [...semCliques].sort(() => Math.random() - 0.5);
+
+    const itensFinais = [];
+
+    premium.forEach((item) => {
+      itensFinais.push({
+        type: 'store',
+        item,
+        storeId: item.id,
+        isDestaque: false,
+      });
+    });
+
+    topDestaques.forEach((item) => {
+      itensFinais.push({
+        type: 'store',
+        item,
+        storeId: item.id,
+        isDestaque: true,
+      });
+    });
+
+    [...comCliques, ...semCliquesEmbaralhados].forEach((item) => {
+      itensFinais.push({
+        type: 'store',
+        item,
+        storeId: item.id,
+        isDestaque: false,
+      });
+    });
+
+    // Anúncios na home
     const itensComAnuncios = [];
-    let contadorDepoisPrimeiroAnuncio = 0;
+    let contador = 0;
     let primeiroAnuncioInserido = false;
 
-    resultados.forEach((item, indice) => {
-      // Insere o primeiro anúncio após os primeiros N itens
+    itensFinais.forEach((item, indice) => {
       if (!primeiroAnuncioInserido && indice === ITENS_ATE_PRIMEIRO_ANUNCIO) {
         itensComAnuncios.push({ type: 'ad', key: 'ad-primeiro' });
         primeiroAnuncioInserido = true;
       }
 
-      // Depois do primeiro anúncio, insere a cada INTERVALO_ANUNCIO itens
       if (primeiroAnuncioInserido) {
-        contadorDepoisPrimeiroAnuncio++;
-        if (
-          contadorDepoisPrimeiroAnuncio % INTERVALO_ANUNCIO === 0 &&
-          indice < resultados.length - 1
-        ) {
+        contador++;
+        if (contador % INTERVALO_ANUNCIO === 0 && indice < itensFinais.length - 1) {
           itensComAnuncios.push({ type: 'ad', key: `ad-${indice}` });
         }
       }
 
-      itensComAnuncios.push({
-        type: 'store',
-        item,
-        storeId: item.id,
-      });
+      itensComAnuncios.push(item);
     });
 
     return [...cabecalho, ...itensComAnuncios];
-  }, [resultados, itensMenu, termoBusca, buscaExecutada, carregando, isHome]);
+  }, [resultados, itensMenu, termoBusca, buscaExecutada, carregando, isHome, colors]);
 
   const renderizarItem = ({ item }) => {
     switch (item.type) {
@@ -164,12 +236,11 @@ export default function Home({ navigation }) {
           <Item
             item={item.item}
             onPress={(loja) => {
-              setItemSelecionado(loja);
-              modalRef.current?.present();
+              navigation.navigate('Detalhe', { item: loja, colors: colors });
             }}
             colors={colors}
-            searchQuery={termoBusca.trim()} // string vazia ou com termo
-            isHome={isHome} // ← AQUI: só mostra "Destaque" na home
+            searchQuery={termoBusca.trim()}
+            isDestaque={item.isDestaque}
           />
         );
       default:
@@ -177,94 +248,49 @@ export default function Home({ navigation }) {
     }
   };
 
-  const fecharModal = () => setItemSelecionado(null);
-
-  useEffect(() => {
-    if (!itemSelecionado) return;
-    const handler = BackHandler.addEventListener('hardwareBackPress', () => {
-      modalRef.current?.close();
-      return true;
-    });
-    return () => handler.remove();
-  }, [itemSelecionado]);
-
-  // Loading states
-  const mostrarLoadingInicial = carregando && resultados.length === 0 && !buscaExecutada;
-  const mostrarLoadingBusca = carregando && buscaExecutada;
-
   return (
-    <BottomSheetModalProvider>
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <FlatList
-          data={listaCompleta}
-          renderItem={renderizarItem}
-          keyExtractor={(item) => {
-            if (item.type === 'logo') return 'logo';
-            if (item.type === 'search') return 'search';
-            if (item.type === 'menu_horizontal') return 'menu';
-            if (item.type === 'ad') return item.key;
-            if (item.type === 'no_results') return 'no_results';
-            return `store-${item.storeId}`;
-          }}
-          stickyHeaderIndices={[1]}
-          showsVerticalScrollIndicator={false}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-          removeClippedSubviews={false}
-          ItemSeparatorComponent={({ leadingItem }) => {
-            if (!leadingItem || ['logo', 'search', 'menu_horizontal', 'ad', 'no_results'].includes(leadingItem.type)) {
-              return null;
-            }
-            return <View style={{ borderBottomWidth: 0.5, borderBottomColor: colors.border }} />;
-          }}
-          ListFooterComponent={
-            <View style={{ borderTopWidth: 0.5, borderTopColor: colors.border, paddingVertical: 22 }}>
-              <Text style={{ textAlign: 'center' }}>Busca Zap Teresina</Text>
-              <Text style={{ textAlign: 'center', color: colors.text + '70', fontSize: 12 }}>@2025</Text>
-            </View>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <FlatList
+        data={listaCompleta}
+        renderItem={renderizarItem}
+        keyExtractor={(item) => {
+          if (item.type === 'logo') return 'logo';
+          if (item.type === 'search') return 'search';
+          if (item.type === 'menu_horizontal') return 'menu';
+          if (item.type === 'ad') return item.key;
+          if (item.type === 'no_results') return 'no_results';
+          return `store-${item.storeId}`;
+        }}
+        stickyHeaderIndices={[1]}
+        showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        ItemSeparatorComponent={({ leadingItem }) => {
+          if (!leadingItem || ['logo', 'search', 'menu_horizontal', 'ad', 'no_results'].includes(leadingItem.type)) {
+            return null;
           }
-          refreshControl={
-            <RefreshControl refreshing={atualizando} onRefresh={recarregar} tintColor={colors.primary} />
-          }
-        />
-
-        {/* Loading inicial */}
-        {mostrarLoadingInicial && (
-          <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color={colors.botao} />
-            <Text style={{ marginTop: 16, fontSize: 16, color: colors.text }}>Carregando...</Text>
+          return <View style={{ borderBottomWidth: 0.5, borderBottomColor: colors.border }} />;
+        }}
+        ListFooterComponent={
+          <View style={{ borderTopWidth: 0.5, borderTopColor: colors.border, paddingVertical: 22 }}>
+            <Text style={{ textAlign: 'center' }}>Busca Zap Teresina</Text>
+            <Text style={{ textAlign: 'center', color: colors.text + '70', fontSize: 12 }}>@2025</Text>
           </View>
-        )}
+        }
+        refreshControl={
+          <RefreshControl refreshing={atualizando} onRefresh={recarregar} tintColor={colors.primary} />
+        }
+      />
 
-        {/* Loading durante busca */}
-        {mostrarLoadingBusca && (
-          <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color={colors.botao} />
-            <Text style={{ marginTop: 16, fontSize: 16, color: colors.text }}>Buscando...</Text>
-          </View>
-        )}
-      </View>
-
-      <BottomSheetModal
-        ref={modalRef}
-        index={1}
-        snapPoints={['85%']}
-        onCloseEnd={fecharModal}
-        onDismiss={fecharModal}
-        enablePanDownToClose={true}
-        backgroundStyle={{ backgroundColor: colors.background }}
-        backdropComponent={({ style, ...props }) => (
-          <Pressable
-            {...props}
-            style={[style, { backgroundColor: '#000000', opacity: 0.5 }]}
-            pointerEvents="auto"
-            onPress={() => modalRef.current?.close()}
-          />
-        )}
-      >
-        {itemSelecionado && <DetalheDoItem item={itemSelecionado} colors={colors} onClose={fecharModal} />}
-      </BottomSheetModal>
-    </BottomSheetModalProvider>
+      {carregando && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color={colors.botao} />
+          <Text style={{ marginTop: 16, fontSize: 16, color: colors.text }}>
+            {buscaExecutada ? 'Buscando...' : 'Carregando...'}
+          </Text>
+        </View>
+      )}
+    </View>
   );
 }
 
