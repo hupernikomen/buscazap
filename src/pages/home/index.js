@@ -14,6 +14,7 @@ import { MobileAds } from 'react-native-google-mobile-ads';
 
 import { carregarItensMenu } from '../../utils/carregaItensMenu';
 import { Item } from '../../component/Item';
+import { getHorarioStatus } from '../../utils/carregaHorarios'; // ← IMPORT NECESSÁRIO
 
 import LogoHeader from '../../component/LogoHeader';
 import SearchBar from '../../component/SearchBar';
@@ -25,7 +26,7 @@ import Carregamentos from '../../hooks/carregamentos';
 
 MobileAds().initialize();
 
-const INTERVALO_ANUNCIO = 15;
+const INTERVALO_ANUNCIO = 17;
 const ITENS_ATE_PRIMEIRO_ANUNCIO = 3;
 
 export default function Home({ navigation }) {
@@ -79,7 +80,6 @@ export default function Home({ navigation }) {
     setShowSearchShadow(scrollY > 100);
   };
 
-  // MenuHorizontal só aparece quando NÃO tem texto digitado (independente de buscaExecutada)
   const mostrarMenuHorizontal = termoBusca.trim() === '' && itensMenu.length > 0;
 
   const listaCompleta = useMemo(() => {
@@ -89,11 +89,9 @@ export default function Home({ navigation }) {
       mostrarMenuHorizontal ? { type: 'menu_horizontal' } : null,
     ].filter(Boolean);
 
-    // Loading ou espera
     if (termoBusca.trim() && !buscaExecutada) return cabecalho;
     if (carregando) return cabecalho;
 
-    // Busca executada
     if (buscaExecutada) {
       if (resultados.length === 0) {
         return [...cabecalho, { type: 'no_results', query: termoBusca.trim() }];
@@ -129,21 +127,51 @@ export default function Home({ navigation }) {
       return [...cabecalho, ...itensComAnuncios];
     }
 
-    // TELA INICIAL (sem texto na busca)
+    // TELA INICIAL
     if (resultados.length === 0) return cabecalho;
 
     const todosItens = [...resultados];
 
+    // Premium no topo
     const premium = todosItens
       .filter((item) => item.anuncio?.premium === true)
       .sort((a, b) => (b.clicks || 0) - (a.clicks || 0));
 
     const naoPremium = todosItens.filter((item) => item.anuncio?.premium !== true);
 
-    const topDestaques = [...naoPremium]
+    // === NOVA REGRA PARA DESTAQUES ===
+    // Filtra itens não premium que estão ABERTOS agora
+    const naoPremiumAbertos = naoPremium.filter((item) => {
+      if (item.filiais && item.filiais.length > 0) {
+        return item.filiais.some((filial) => {
+          if (!filial.horarios) return false;
+          const status = getHorarioStatus(filial.horarios);
+          return status.isOpen && !status.emIntervalo;
+        });
+      }
+      if (item.horarios) {
+        const status = getHorarioStatus(item.horarios);
+        return status.isOpen && !status.emIntervalo;
+      }
+      return false;
+    });
+
+    // Top 2 abertos com mais cliques
+    let topDestaques = [...naoPremiumAbertos]
       .sort((a, b) => (b.clicks || 0) - (a.clicks || 0))
       .slice(0, 2);
 
+    // Se não tiver 2 abertos, completa com os mais clicados (mesmo fechados)
+    if (topDestaques.length < 2) {
+      const candidatosRestantes = naoPremium.filter((item) => !topDestaques.includes(item));
+      const maisClicados = candidatosRestantes
+        .sort((a, b) => (b.clicks || 0) - (a.clicks || 0))
+        .slice(0, 2 - topDestaques.length);
+
+      topDestaques = [...topDestaques, ...maisClicados];
+    }
+
+    // Restantes
     const restantes = naoPremium.filter((item) => !topDestaques.includes(item));
 
     const comCliques = restantes
@@ -151,11 +179,11 @@ export default function Home({ navigation }) {
       .sort((a, b) => (b.clicks || 0) - (a.clicks || 0));
 
     const semCliques = restantes.filter((item) => (item.clicks || 0) === 0);
-
     const semCliquesEmbaralhados = [...semCliques].sort(() => Math.random() - 0.5);
 
     const itensFinais = [];
 
+    // Premium
     premium.forEach((item) => {
       itensFinais.push({
         type: 'store',
@@ -165,6 +193,7 @@ export default function Home({ navigation }) {
       });
     });
 
+    // Destaques (priorizando abertos)
     topDestaques.forEach((item) => {
       itensFinais.push({
         type: 'store',
@@ -174,6 +203,7 @@ export default function Home({ navigation }) {
       });
     });
 
+    // Restantes
     [...comCliques, ...semCliquesEmbaralhados].forEach((item) => {
       itensFinais.push({
         type: 'store',
@@ -183,6 +213,7 @@ export default function Home({ navigation }) {
       });
     });
 
+    // Anúncios
     const itensComAnuncios = [];
     let contador = 0;
     let primeiroAnuncioInserido = false;

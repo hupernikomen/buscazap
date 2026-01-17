@@ -92,7 +92,7 @@ export default function SearchBar({
 
 const styles = StyleSheet.create({
   container: {
-    paddingBottom: 6,
+    paddingBottom: 8,
     paddingTop: 6,
     paddingHorizontal: 22,
   },

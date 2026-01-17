@@ -48,7 +48,7 @@ export default function InfoPromocao({ navigation }) {
 
       {/* Introdução */}
       <Text style={styles.introText}>
-        Centenas de pessoas usam o Busca Zap Teresina diariamente para encontrar produtos e serviços.
+        Centenas de pessoas usam o BuscaZap Teresina diariamente para encontrar produtos e serviços.
         Com um plano de destaque, seu anúncio aparece primeiro — aumentando muito suas chances de contato com clientes interessados.
       </Text>
 

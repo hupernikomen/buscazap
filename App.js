@@ -20,7 +20,7 @@ const Tema = {
     ...DefaultTheme.colors,
     background: '#ffffff',
     card: '#00000008',
-    suave: '#777',
+    suave: '#666',
     primary: '#000',
     border: '#ddd',
     notificacao: '#e2a50cff',

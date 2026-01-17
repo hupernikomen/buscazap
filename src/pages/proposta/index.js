@@ -165,7 +165,7 @@ export default function Proposta({ navigation }) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>Anuncie no Busca Zap!</Text>
+        <Text style={styles.title}>Anuncie no BuscaZap!</Text>
         <Text style={styles.subtitle}>
           Preencha sua proposta de anúncio.
         </Text>
@@ -216,25 +216,26 @@ export default function Proposta({ navigation }) {
           {errors.bairro && <Text style={styles.errorText}>Preencha o bairro</Text>}
 
           {/* Tags */}
-          <Text style={styles.label}>Tags (separadas por vírgula)</Text>
+          <Text style={styles.label}>Tags do seu negócio (separe por vírgula)</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { minHeight: 100, maxHeight: 200, textAlignVertical: 'top' }]}
             placeholder="Ex: pizza, delivery, açai, farmácia"
             placeholderTextColor="#999"
             value={form.tags}
+            multiline
             onChangeText={(t) => setForm((prev) => ({ ...prev, tags: t }))}
           />
 
           {/* Descrição */}
-          <Text style={styles.label}>Descrição do negócio (opcional)</Text>
+          <Text style={styles.label}>Descrição do negócio</Text>
           <TextInput
-            style={[styles.input, { height: 100, textAlignVertical: 'top' }]}
+            style={[styles.input, { minHeight: 100, maxHeight: 150, textAlignVertical: 'top' }]}
             placeholder="Fale um pouco sobre seu negócio, diferenciais..."
             placeholderTextColor="#999"
             value={form.descricao}
-            onChangeText={(t) => setForm((prev) => ({ ...prev, descricao: t.slice(0, 150) }))}
+            onChangeText={(t) => setForm((prev) => ({ ...prev, descricao: t.slice(0, 200) }))}
             multiline
-            maxLength={150}
+            maxLength={200}
           />
 
           {/* Faz entrega */}
@@ -272,14 +273,13 @@ export default function Proposta({ navigation }) {
 const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 20,
     paddingBottom: 40,
   },
   title: {
     fontSize: 26,
     fontWeight: '700',
     textAlign: 'center',
-    paddingHorizontal:22,
+    paddingHorizontal: 22,
     marginBottom: 8,
     color: '#333',
   },
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   formContainer: {
-    marginTop:32,
+    marginTop: 32,
     gap: 6
   },
   label: {
@@ -299,7 +299,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#444',
     marginLeft: 18,
-    marginBottom: 2,  // ← Agora bem colado no input
   },
   input: {
     backgroundColor: '#fff',
@@ -307,8 +306,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 14,
     fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#eee',
+    borderWidth: .7,
+    borderColor: '#ddd',
   },
   inputError: {
     borderColor: '#F44336',

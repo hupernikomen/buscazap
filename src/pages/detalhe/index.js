@@ -146,7 +146,7 @@ export default function Detalhe({ route }) {
             <View key={index} style={styles.filialContainer}>
               {/* Bloco título + endereço */}
               <View style={styles.identificacaoContainer}>
-                <Text style={[styles.tituloFilial, { color: colors.suave }]}>
+                <Text style={[styles.tituloFilial, { color: colors.text }]}>
                   {tituloFilial}
                 </Text>
 
@@ -165,7 +165,7 @@ export default function Detalhe({ route }) {
 
               {/* Status da filial */}
               <View style={styles.statusContainer}>
-                <Ionicons name={statusIcon} size={18} color={statusCor} />
+                <Ionicons name={statusIcon} size={16} color={statusCor} />
                 <Text style={[styles.statusTexto, { color: statusCor }]}>
                   {statusTexto}
                 </Text>
@@ -180,14 +180,7 @@ export default function Detalhe({ route }) {
 
               {/* Horários detalhados */}
               <View style={styles.horariosContainer}>
-                {temIntervalo && filial.horarios.intervalo && (
-                  <View style={styles.linhaHorario}>
-                    <Text style={styles.dia}>Intervalo</Text>
-                    <Text style={styles.horario}>
-                      {filial.horarios.intervalo.inicio} – {filial.horarios.intervalo.retorno}
-                    </Text>
-                  </View>
-                )}
+
 
                 {filial.horarios.semana && (
                   <View style={styles.linhaHorario}>
@@ -198,19 +191,28 @@ export default function Detalhe({ route }) {
                   </View>
                 )}
 
-                <View style={[styles.linhaHorario, hojeIndex === 6 && styles.linhaHoje]}>
+                <View style={[styles.linhaHorario, hojeIndex === 6]}>
                   <Text style={styles.dia}>Sábado</Text>
                   <Text style={temSabado ? styles.horario : styles.horarioFechado}>
                     {temSabado ? `${filial.horarios.sabado.abre} – ${filial.horarios.sabado.fecha}` : 'Fechado'}
                   </Text>
                 </View>
 
-                <View style={[styles.linhaHorario, hojeIndex === 0 && styles.linhaHoje]}>
+                <View style={[styles.linhaHorario, hojeIndex === 0]}>
                   <Text style={styles.dia}>Domingo</Text>
                   <Text style={temDomingo ? styles.horario : styles.horarioFechado}>
                     {temDomingo ? `${filial.horarios.domingo.abre} – ${filial.horarios.domingo.fecha}` : 'Fechado'}
                   </Text>
                 </View>
+
+                {temIntervalo && filial.horarios.intervalo && (
+                  <View style={styles.linhaIntervalo}>
+                    <Text style={styles.dia}>Intervalos</Text>
+                    <Text style={styles.horario}>
+                      {filial.horarios.intervalo.inicio} – {filial.horarios.intervalo.retorno}
+                    </Text>
+                  </View>
+                )}
               </View>
 
               {/* Entrega */}
@@ -255,23 +257,23 @@ const styles = StyleSheet.create({
     paddingBottom: 60,
   },
   nomeLoja: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '700',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   descricao: {
-    fontSize: 16,
+    fontSize: 17,
     color: '#666',
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 22,
     marginBottom: 32,
     paddingHorizontal: 10,
   },
   filialContainer: {
     backgroundColor: '#fff',
     borderRadius: 32,
-    paddingVertical: 28,
+    paddingVertical: 20,
     paddingHorizontal: 20,
     marginBottom: 32,
     borderWidth: 1,
@@ -281,11 +283,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tituloFilial: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 1.2,
-    marginBottom: 8,
   },
   enderecoHarmonizado: {
     flexDirection: 'row',
@@ -293,19 +294,18 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   enderecoHarmonizadoTexto: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#666',
     textTransform: 'uppercase',
-    // letterSpacing: 0.8,
     textAlign: 'center',
-    lineHeight: 20,
+    marginTop:8
   },
   separador: {
-    height: 1,
+    height: .5,
     width: 20,
     alignSelf: 'center',
-    backgroundColor: '#f0f0f0',
-    marginVertical: 20,
+    backgroundColor: '#aaa',
+    marginVertical: 14,
   },
   statusContainer: {
     flexDirection: 'row',
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   statusTexto: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -337,13 +337,16 @@ const styles = StyleSheet.create({
   linhaHorario: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 10,
+    paddingVertical: 6
   },
-  linhaHoje: {
-    backgroundColor: '#e8f5e9',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    marginHorizontal: -12,
+  linhaIntervalo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    marginTop:12,
+    borderTopWidth:1,
+    borderColor:'#f0f0f0'
+    
   },
   dia: {
     fontSize: 15,
@@ -380,8 +383,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 16,
-    paddingVertical: 12,
     borderRadius: 50,
+    height: 55,
     backgroundColor: '#25D366',
   },
   textoBotao: {

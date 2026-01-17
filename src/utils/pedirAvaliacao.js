@@ -1,8 +1,8 @@
 // src/utils/pedirAvaliacao.js
 
 import * as StoreReview from 'expo-store-review';
-import { Platform } from 'react-native';
 
+// PEDIR AVALIAÇÃO DOS USUARIOS NO GOOGLE PLAY
 export async function pedirAvaliacao() {
   try {
     // Verifica se o módulo está disponível (só em builds nativas)

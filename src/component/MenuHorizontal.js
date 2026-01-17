@@ -11,11 +11,11 @@ export default function MenuHorizontal({ itensMenu, colors, navigation }) {
   };
 
   return (
-    <View style={{ paddingVertical: 12, marginBottom:12 }}>
+    <View style={{ paddingVertical: 12, marginBottom: 12 }}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 22, gap: 8 }}>
         <Pressable
           onPress={() => navigation.navigate(botaoFixo.navigate)}
-          style={{ backgroundColor: colors.botao, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 22 }}
+          style={{ backgroundColor: colors.botao, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 22 }}
         >
           <Text style={{ color: '#fff', fontWeight: 500 }}>{botaoFixo.titulo}</Text>
         </Pressable>
@@ -27,7 +27,7 @@ export default function MenuHorizontal({ itensMenu, colors, navigation }) {
               key={i}
               onPress={() => {
                 if (btn.navigate) navigation.navigate(btn.navigate);
-                else if (btn.link) Linking.openURL(btn.link).catch(() => {});
+                else if (btn.link) Linking.openURL(btn.link).catch(() => { });
               }}
               style={{ backgroundColor: '#f8f8f8', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 22 }}
             >
