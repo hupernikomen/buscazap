@@ -1,17 +1,73 @@
-import React from 'react';
-import { View, Image } from 'react-native';
+// src/component/LogoHeader.js
 
-const LOGO_URL =
-  'https://firebasestorage.googleapis.com/v0/b/appguiacomercial-e6109.appspot.com/o/buscazaptop.png?alt=media&token=b46ea653-8e79-4b15-afd9-7d958e0096f0';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 
 export default function LogoHeader() {
+  const [textoDigitado, setTextoDigitado] = useState('');
+  const [mostrarTeresina, setMostrarTeresina] = useState(false);
+  const hasRun = useRef(false); // ← Controla se a animação já rodou
+
+  const textoCompleto = 'Busca Zap';
+
+  useEffect(() => {
+    // Executa apenas na primeira montagem
+    if (hasRun.current) return;
+    hasRun.current = true;
+
+    let index = 0;
+    const intervalo = setInterval(() => {
+      if (index <= textoCompleto.length) {
+        setTextoDigitado(textoCompleto.slice(0, index));
+        index++;
+      } else {
+        clearInterval(intervalo);
+        // Mostra TERESINA após delay
+        setTimeout(() => {
+          setMostrarTeresina(true);
+        }, 400);
+      }
+    }, 80);
+
+    return () => clearInterval(intervalo);
+  }, []);
+
+  // Separa "Busca " do "Zap"
+  const parteBusca = textoDigitado.replace('Zap', '').trimEnd();
+  const temZap = textoDigitado.endsWith('Zap');
+
   return (
-    <View style={{ alignItems: 'center', paddingTop: 20 }}>
-      <Image
-        source={{ uri: LOGO_URL }}
-        style={{ width: 170, height: 80 }}
-        resizeMode="contain"
-      />
+    <View style={styles.container}>
+      <Text style={styles.buscaZap}>
+        <Text>{parteBusca}</Text>
+        {temZap && <Text style={styles.zap}>Zap</Text>}
+      </Text>
+
+      {mostrarTeresina && (
+        <Text style={styles.teresina}>TERESINA</Text>
+      )}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    alignItems: 'center',
+    paddingTop: 20,
+    paddingBottom: 22,
+    height:80
+  },
+  buscaZap: {
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+  },
+  zap: {
+    fontWeight: '900',
+  },
+  teresina: {
+    fontSize: 10,
+    color: '#000',
+    letterSpacing: 3,
+  },
+});

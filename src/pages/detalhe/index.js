@@ -15,6 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { getHorarioStatus } from '../../utils/carregaHorarios';
 import { incrementClicks } from '../../services/firebaseConnection/firestoreService';
 
+
+
 const hojeIndex = new Date().getDay();
 
 export default function Detalhe({ route }) {
@@ -78,25 +80,23 @@ export default function Detalhe({ route }) {
 
   const temDescricao = !!item.descricao?.trim();
 
-  const tituloFilial = (filial, index) =>
-    filiais.length > 1
-      ? `LOJA ${index + 1} • ${filial.bairro.toUpperCase()}`
-      : filial.bairro.toUpperCase();
-
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Nome da loja */}
         <Text style={[styles.nomeLoja, { color: colors.text }]}>
           {item.nome}
         </Text>
 
+        {/* Descrição geral */}
         {temDescricao && (
           <Text style={styles.descricao}>{item.descricao.trim()}</Text>
         )}
 
+        {/* Cada filial */}
         {filiais.map((filial, index) => {
           const horarioStatus = getHorarioStatus(filial.horarios);
           const isOpen = horarioStatus.isOpen;
@@ -111,40 +111,48 @@ export default function Detalhe({ route }) {
           const temIntervalo = filial.horarios.intervalo?.global === true;
           const temEndereco = !!filial.endereco;
 
+          const tituloFilial = filiais.length > 1
+            ? `LOJA ${index + 1} • ${filial.bairro.toUpperCase()}`
+            : filial.bairro.toUpperCase();
+
           return (
             <View key={index} style={styles.filialContainer}>
-              <Text style={[styles.tituloFilial, { color: colors.suave }]}>
-                {tituloFilial(filial, index)}
-              </Text>
-
-
-
-              {estaNoIntervalo && filial.horarios.intervalo?.retorno && (
-                <Text style={styles.subTextoFilial}>
-                  Voltamos às {filial.horarios.intervalo.retorno}
+              {/* Bloco título + endereço */}
+              <View style={styles.identificacaoContainer}>
+                <Text style={[styles.tituloFilial, { color: colors.suave }]}>
+                  {tituloFilial}
                 </Text>
-              )}
 
-              {/* Endereço */}
-              {temEndereco && (
-                <View style={styles.enderecoBadge}>
-                  <Ionicons name="location-outline" size={16} color="#888" />
-                  <Text style={styles.textoEnderecoBadge}>{filial.endereco}</Text>
-                </View>
-              )}
+                {temEndereco && (
+                  <View style={styles.enderecoHarmonizado}>
+                    {/* <Ionicons name="location-outline" size={16} color={colors.suave} /> */}
+                    <Text style={styles.enderecoHarmonizadoTexto}>
+                      {filial.endereco.toUpperCase()}
+                    </Text>
+                  </View>
+                )}
+              </View>
 
-              {/* STATUS INDIVIDUAL DA FILIAL */}
-              <View style={styles.statusFilialContainer}>
-                <Ionicons name={statusIcon} size={20} color={statusCor} />
-                <Text style={[styles.statusFilialTexto, { color: statusCor }]}>
+              {/* Fina linha separadora */}
+              <View style={styles.separador} />
+
+              {/* Status da filial */}
+              <View style={styles.statusContainer}>
+                <Ionicons name={statusIcon} size={18} color={statusCor} />
+                <Text style={[styles.statusTexto, { color: statusCor }]}>
                   {statusTexto}
                 </Text>
               </View>
 
-              {/* Horários */}
-              <View style={styles.horariosContainer}>
-                {/* <Text style={styles.tituloSecao}>Horário de funcionamento</Text> */}
+              {/* Retorno do intervalo */}
+              {estaNoIntervalo && filial.horarios.intervalo?.retorno && (
+                <Text style={styles.retornoTexto}>
+                  Voltamos às {filial.horarios.intervalo.retorno}
+                </Text>
+              )}
 
+              {/* Horários detalhados */}
+              <View style={styles.horariosContainer}>
                 {temIntervalo && filial.horarios.intervalo && (
                   <View style={styles.linhaHorario}>
                     <Text style={styles.dia}>Intervalo</Text>
@@ -182,11 +190,11 @@ export default function Detalhe({ route }) {
               {filial.fazEntrega && (
                 <View style={styles.entregaContainer}>
                   <Ionicons name="bicycle-outline" size={18} color={colors.botao} />
-                  <Text style={styles.textoEntrega}>Fazemos entregas na região</Text>
+                  <Text style={styles.entregaTexto}>Fazemos entregas na região</Text>
                 </View>
               )}
 
-              {/* WhatsApp */}
+              {/* Botão WhatsApp */}
               {filial.whatsappNumero && (
                 <Pressable
                   onPress={() => handleWhatsApp(filial.whatsappNumero)}
@@ -217,97 +225,103 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingBottom: 60,
   },
   nomeLoja: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: '700',
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   descricao: {
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 24,
     marginBottom: 32,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
   },
   filialContainer: {
     backgroundColor: '#fff',
     borderRadius: 32,
-    paddingVertical: 32,
-    paddingHorizontal: 22,
-    marginBottom: 28,
+    paddingVertical: 28,
+    paddingHorizontal: 24,
+    marginBottom: 32,
     borderWidth: 1,
     borderColor: '#f0f0f0',
+  },
+  identificacaoContainer: {
+    alignItems: 'center',
   },
   tituloFilial: {
     fontSize: 13,
     fontWeight: '600',
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 12,
+    letterSpacing: 1.2,
+    marginBottom: 8,
   },
-  statusFilialContainer: {
+  enderecoHarmonizado: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginVertical: 16,
   },
-  statusFilialTexto: {
-    fontSize: 14,
-    fontWeight: '600',
+  enderecoHarmonizadoTexto: {
+    fontSize: 12,
+    color: '#666',
     textTransform: 'uppercase',
+    // letterSpacing: 0.8,
+    textAlign: 'center',
+    lineHeight: 20,
   },
-  subTextoFilial: {
-    fontSize: 14,
-    color: '#e67e22',
-    textAlign: 'left',
-    marginBottom: 24,
-    marginLeft: 28,
-    fontStyle: 'italic',
+  separador: {
+    height: 1,
+    width:20,
+    alignSelf:'center',
+    backgroundColor: '#f0f0f0',
+    marginVertical: 20,
   },
-  enderecoBadge: {
+  statusContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 12,
+    justifyContent: 'center',
     gap: 10,
-    marginBottom: 32,
-    alignSelf: 'flex-start',
+    marginBottom: 20,
   },
-  textoEnderecoBadge: {
+  statusTexto: {
+    fontSize: 13,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  retornoTexto: {
     fontSize: 15,
-    color: '#555',
-    flexShrink: 1,
+    color: '#e67e22',
+    textAlign: 'center',
+    marginBottom: 28,
+    fontStyle: 'italic',
   },
   horariosContainer: {
-    marginBottom: 24,
-  },
-  tituloSecao: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#444',
-    marginBottom: 12,
-    marginLeft: 2,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    marginBottom: 28,
   },
   linhaHorario: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 6,
-    paddingHorizontal: 2,
+    paddingVertical: 10,
   },
   linhaHoje: {
-    backgroundColor: '#f0faf0',
-    borderRadius: 8,
-    paddingHorizontal: 8,
+    backgroundColor: '#e8f5e9',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    marginHorizontal: -12,
   },
   dia: {
     fontSize: 15,
-    color: '#666',
+    color: '#555',
+    fontWeight: '500',
   },
   horario: {
     fontSize: 15,
@@ -316,34 +330,36 @@ const styles = StyleSheet.create({
   },
   horarioFechado: {
     fontSize: 15,
-    color: '#aaa',
+    color: '#999',
     fontStyle: 'italic',
   },
   entregaContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
-    paddingVertical: 14,
-    marginBottom: 28,
+    gap: 12,
+    paddingVertical: 16,
+    marginBottom: 32,
+    backgroundColor: '#f0f8f0',
+    borderRadius: 40,
   },
-  textoEntrega: {
-    fontSize: 15.5,
+  entregaTexto: {
+    fontSize: 16,
     color: '#28a745',
-    fontWeight: '500',
+    fontWeight: '600',
   },
   botaoWhats: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 14,
-    paddingVertical: 16,
+    gap: 16,
+    paddingVertical: 12,
     borderRadius: 50,
     backgroundColor: '#25D366',
   },
   textoBotao: {
     color: '#fff',
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '600',
   },
 });

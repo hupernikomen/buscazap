@@ -63,14 +63,16 @@ export default function Home({ navigation }) {
     voltarParaListaInicial();
   };
 
-  const handleChangeText = (texto) => {
-    setTermoBusca(texto);
+const handleChangeText = (texto) => {
+  setTermoBusca(texto);
 
-    if (texto.trim() === '') {
-      setBuscaExecutada(false);
-      voltarParaListaInicial();
-    }
-  };
+  if (texto.trim() === '') {
+    setBuscaExecutada(false);
+    voltarParaListaInicial();
+  } else if (buscaExecutada) {
+    setBuscaExecutada(false); // ← Isso já reseta!
+  }
+};
 
   const handleScroll = (event) => {
     const scrollY = event.nativeEvent.contentOffset.y;

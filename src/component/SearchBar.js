@@ -28,22 +28,24 @@ export default function SearchBar({
   // Tem texto digitado?
   const temTexto = termoBusca.trim().length > 0;
 
-  // Mostra lupa se não tem texto OU se tem texto mas busca ainda não foi executada
+  // Mostra lupa se NÃO foi executada a busca (independente de ter texto ou não)
+  // Mostra X apenas se a busca foi executada
   const mostrarLupa = !buscaExecutada;
   const iconeNome = mostrarLupa ? 'search' : 'close';
 
-  // Animação: aparece quando tem texto ou busca executada
+  // Animação: botão aparece quando tem texto OU quando a busca foi executada
   useEffect(() => {
     Animated.timing(animatedValue, {
       toValue: temTexto || buscaExecutada ? 1 : 0,
-      duration: 300,
+      duration: 500,
+      delay:300,
       useNativeDriver: true,
     }).start();
   }, [temTexto, buscaExecutada]);
 
   const translateX = animatedValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [60, 0], // desliza da direita para a posição correta
+    outputRange: [60, 0],
   });
 
   const opacity = animatedValue.interpolate({
@@ -70,7 +72,7 @@ export default function SearchBar({
           />
         </Pressable>
 
-        {/* Botão animado (lupa ou X) */}
+        {/* Botão animado */}
         <Animated.View style={{ opacity, transform: [{ translateX }] }}>
           <Pressable
             style={styles.button}
@@ -97,7 +99,6 @@ const styles = StyleSheet.create({
   shadow: {
     elevation: 1,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
   },
   bar: {
     borderRadius: 35,
