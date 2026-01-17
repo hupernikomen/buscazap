@@ -1,6 +1,6 @@
 // src/pages/Detalhe.js
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Text,
   Pressable,
@@ -15,17 +15,44 @@ import { Ionicons } from '@expo/vector-icons';
 import { getHorarioStatus } from '../../utils/carregaHorarios';
 import { incrementClicks } from '../../services/firebaseConnection/firestoreService';
 
-
+import { pedirAvaliacao } from '../../utils/pedirAvaliacao';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const hojeIndex = new Date().getDay();
 
 export default function Detalhe({ route }) {
+
+
   const { item, colors } = route.params;
 
   const [loadingWhatsApp, setLoadingWhatsApp] = useState(false);
 
   // === NORMALIZAÇÃO DAS FILIAIS ===
   let filiais = [];
+
+  useEffect(() => {
+    const registrarAbertura = async () => {
+      try {
+        const chave = '@contador_detalhe';
+        let contador = await AsyncStorage.getItem(chave);
+        contador = contador ? parseInt(contador) + 1 : 1;
+
+        await AsyncStorage.setItem(chave, contador.toString());
+
+        // Pede avaliação após 5 aberturas da tela de detalhe
+        if (contador === 5) {
+          // Pequeno delay para não interromper a navegação
+          setTimeout(async () => {
+            await pedirAvaliacao();
+          }, 1500);
+        }
+      } catch (error) {
+        console.log('Erro ao registrar abertura:', error);
+      }
+    };
+
+    registrarAbertura();
+  }, []);
 
   if (item.filiais && Array.isArray(item.filiais) && item.filiais.length > 0) {
     filiais = item.filiais.map(f => ({
@@ -245,7 +272,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 32,
     paddingVertical: 28,
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     marginBottom: 32,
     borderWidth: 1,
     borderColor: '#f0f0f0',
@@ -275,8 +302,8 @@ const styles = StyleSheet.create({
   },
   separador: {
     height: 1,
-    width:20,
-    alignSelf:'center',
+    width: 20,
+    alignSelf: 'center',
     backgroundColor: '#f0f0f0',
     marginVertical: 20,
   },

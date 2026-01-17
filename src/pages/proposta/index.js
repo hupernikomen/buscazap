@@ -204,7 +204,7 @@ export default function Proposta({ navigation }) {
           )}
 
           {/* Bairro */}
-          <Text style={styles.label}>Bairro principal *</Text>
+          <Text style={styles.label}>Bairro *</Text>
           <TextInput
             style={[styles.input, errors.bairro && styles.inputError]}
             placeholder="Ex: Centro, Dirceu"

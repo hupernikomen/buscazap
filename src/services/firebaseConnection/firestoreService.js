@@ -24,13 +24,17 @@ export const incrementClicks = async (itemId) => {
     const docSnap = await getDoc(userRef);
     if (!docSnap.exists()) return;
 
-    const currentClicks = docSnap.data().cliques || 0;
+    // CORRIGIDO: campo correto é 'clicks'
+    const currentClicks = docSnap.data().clicks || 0;
     const newClicks = currentClicks + 1;
 
     if (newClicks >= MAX_CLIQUES_ANTES_RESET) {
-      await updateDoc(userRef, { cliques: 0 });
+      // CORRIGIDO: resetando o campo 'clicks'
+      await updateDoc(userRef, { clicks: 0 });
+      console.log(`Cliques resetados para 0 no item ${itemId}`);
     } else {
-      await updateDoc(userRef, { cliques: increment(1) });
+      // CORRIGIDO: incrementando o campo 'clicks'
+      await updateDoc(userRef, { clicks: increment(1) });
     }
   } catch (error) {
     console.error('Erro ao incrementar cliques:', error);

@@ -63,29 +63,30 @@ export default function Home({ navigation }) {
     voltarParaListaInicial();
   };
 
-const handleChangeText = (texto) => {
-  setTermoBusca(texto);
+  const handleChangeText = (texto) => {
+    setTermoBusca(texto);
 
-  if (texto.trim() === '') {
-    setBuscaExecutada(false);
-    voltarParaListaInicial();
-  } else if (buscaExecutada) {
-    setBuscaExecutada(false); // ← Isso já reseta!
-  }
-};
+    if (texto.trim() === '') {
+      setBuscaExecutada(false);
+      voltarParaListaInicial();
+    } else if (buscaExecutada) {
+      setBuscaExecutada(false);
+    }
+  };
 
   const handleScroll = (event) => {
     const scrollY = event.nativeEvent.contentOffset.y;
     setShowSearchShadow(scrollY > 100);
   };
 
-  const isHome = !termoBusca.trim() || !buscaExecutada;
+  // MenuHorizontal só aparece quando NÃO tem texto digitado (independente de buscaExecutada)
+  const mostrarMenuHorizontal = termoBusca.trim() === '' && itensMenu.length > 0;
 
   const listaCompleta = useMemo(() => {
     const cabecalho = [
       { type: 'logo' },
       { type: 'search' },
-      isHome && itensMenu.length > 0 ? { type: 'menu_horizontal' } : null,
+      mostrarMenuHorizontal ? { type: 'menu_horizontal' } : null,
     ].filter(Boolean);
 
     // Loading ou espera
@@ -98,15 +99,13 @@ const handleChangeText = (texto) => {
         return [...cabecalho, { type: 'no_results', query: termoBusca.trim() }];
       }
 
-      // NA BUSCA: mostra apenas os resultados ordenados pela busca (sem ordenação da home)
       const itensBusca = resultados.map((item) => ({
         type: 'store',
         item,
         storeId: item.id,
-        isDestaque: false, // na busca, não usa o destaque da home
+        isDestaque: false,
       }));
 
-      // Inserção de anúncios na busca
       const itensComAnuncios = [];
       let contador = 0;
       let primeiroAnuncioInserido = false;
@@ -130,29 +129,28 @@ const handleChangeText = (texto) => {
       return [...cabecalho, ...itensComAnuncios];
     }
 
-    // TELA INICIAL (isHome)
+    // TELA INICIAL (sem texto na busca)
     if (resultados.length === 0) return cabecalho;
 
-    // Ordenação da home (premium, destaques, cliques, aleatório)
     const todosItens = [...resultados];
 
     const premium = todosItens
       .filter((item) => item.anuncio?.premium === true)
-      .sort((a, b) => (b.cliques || 0) - (a.cliques || 0));
+      .sort((a, b) => (b.clicks || 0) - (a.clicks || 0));
 
     const naoPremium = todosItens.filter((item) => item.anuncio?.premium !== true);
 
     const topDestaques = [...naoPremium]
-      .sort((a, b) => (b.cliques || 0) - (a.cliques || 0))
+      .sort((a, b) => (b.clicks || 0) - (a.clicks || 0))
       .slice(0, 2);
 
     const restantes = naoPremium.filter((item) => !topDestaques.includes(item));
 
     const comCliques = restantes
-      .filter((item) => (item.cliques || 0) > 0)
-      .sort((a, b) => (b.cliques || 0) - (a.cliques || 0));
+      .filter((item) => (item.clicks || 0) > 0)
+      .sort((a, b) => (b.clicks || 0) - (a.clicks || 0));
 
-    const semCliques = restantes.filter((item) => (item.cliques || 0) === 0);
+    const semCliques = restantes.filter((item) => (item.clicks || 0) === 0);
 
     const semCliquesEmbaralhados = [...semCliques].sort(() => Math.random() - 0.5);
 
@@ -185,7 +183,6 @@ const handleChangeText = (texto) => {
       });
     });
 
-    // Anúncios na home
     const itensComAnuncios = [];
     let contador = 0;
     let primeiroAnuncioInserido = false;
@@ -207,7 +204,7 @@ const handleChangeText = (texto) => {
     });
 
     return [...cabecalho, ...itensComAnuncios];
-  }, [resultados, itensMenu, termoBusca, buscaExecutada, carregando, isHome, colors]);
+  }, [resultados, itensMenu, termoBusca, buscaExecutada, carregando, mostrarMenuHorizontal, colors]);
 
   const renderizarItem = ({ item }) => {
     switch (item.type) {
