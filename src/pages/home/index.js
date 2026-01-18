@@ -13,8 +13,8 @@ import { useTheme } from '@react-navigation/native';
 import { MobileAds } from 'react-native-google-mobile-ads';
 
 import { carregarItensMenu } from '../../utils/carregaItensMenu';
-import { Item } from '../../component/Item';
-import { getHorarioStatus } from '../../utils/carregaHorarios'; // ← IMPORT NECESSÁRIO
+import Item from '../../component/Item'; // ← Import default
+import { getHorarioStatus } from '../../utils/carregaHorarios';
 
 import LogoHeader from '../../component/LogoHeader';
 import SearchBar from '../../component/SearchBar';
@@ -132,46 +132,33 @@ export default function Home({ navigation }) {
 
     const todosItens = [...resultados];
 
-    // Premium no topo
     const premium = todosItens
       .filter((item) => item.anuncio?.premium === true)
       .sort((a, b) => (b.clicks || 0) - (a.clicks || 0));
 
     const naoPremium = todosItens.filter((item) => item.anuncio?.premium !== true);
 
-    // === NOVA REGRA PARA DESTAQUES ===
-    // Filtra itens não premium que estão ABERTOS agora
     const naoPremiumAbertos = naoPremium.filter((item) => {
-      if (item.filiais && item.filiais.length > 0) {
-        return item.filiais.some((filial) => {
-          if (!filial.horarios) return false;
-          const status = getHorarioStatus(filial.horarios);
-          return status.isOpen && !status.emIntervalo;
-        });
-      }
-      if (item.horarios) {
-        const status = getHorarioStatus(item.horarios);
+      return item.filiais?.some((filial) => {
+        if (!filial.horarios) return false;
+        const status = getHorarioStatus(filial.horarios);
         return status.isOpen && !status.emIntervalo;
-      }
-      return false;
+      }) ?? false;
     });
 
-    // Top 2 abertos com mais cliques
     let topDestaques = [...naoPremiumAbertos]
       .sort((a, b) => (b.clicks || 0) - (a.clicks || 0))
       .slice(0, 2);
 
-    // Se não tiver 2 abertos, completa com os mais clicados (mesmo fechados)
     if (topDestaques.length < 2) {
-      const candidatosRestantes = naoPremium.filter((item) => !topDestaques.includes(item));
-      const maisClicados = candidatosRestantes
+      const restantes = naoPremium.filter((item) => !topDestaques.includes(item));
+      const maisClicados = restantes
         .sort((a, b) => (b.clicks || 0) - (a.clicks || 0))
         .slice(0, 2 - topDestaques.length);
 
       topDestaques = [...topDestaques, ...maisClicados];
     }
 
-    // Restantes
     const restantes = naoPremium.filter((item) => !topDestaques.includes(item));
 
     const comCliques = restantes
@@ -183,7 +170,6 @@ export default function Home({ navigation }) {
 
     const itensFinais = [];
 
-    // Premium
     premium.forEach((item) => {
       itensFinais.push({
         type: 'store',
@@ -193,7 +179,6 @@ export default function Home({ navigation }) {
       });
     });
 
-    // Destaques (priorizando abertos)
     topDestaques.forEach((item) => {
       itensFinais.push({
         type: 'store',
@@ -203,7 +188,6 @@ export default function Home({ navigation }) {
       });
     });
 
-    // Restantes
     [...comCliques, ...semCliquesEmbaralhados].forEach((item) => {
       itensFinais.push({
         type: 'store',
@@ -213,7 +197,6 @@ export default function Home({ navigation }) {
       });
     });
 
-    // Anúncios
     const itensComAnuncios = [];
     let contador = 0;
     let primeiroAnuncioInserido = false;
@@ -265,9 +248,7 @@ export default function Home({ navigation }) {
         return (
           <Item
             item={item.item}
-            onPress={(loja) => {
-              navigation.navigate('Detalhe', { item: loja, colors: colors });
-            }}
+            onPress={(loja) => navigation.navigate('Detalhe', { item: loja, colors })}
             colors={colors}
             searchQuery={termoBusca.trim()}
             isDestaque={item.isDestaque}

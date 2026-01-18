@@ -15,7 +15,7 @@ export default function MenuHorizontal({ itensMenu, colors, navigation }) {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 22, gap: 8 }}>
         <Pressable
           onPress={() => navigation.navigate(botaoFixo.navigate)}
-          style={{ backgroundColor: colors.botao, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 22 }}
+          style={{ backgroundColor: colors.botao, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 22 }}
         >
           <Text style={{ color: '#fff', fontWeight: 500 }}>{botaoFixo.titulo}</Text>
         </Pressable>

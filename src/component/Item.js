@@ -1,17 +1,16 @@
 // src/components/StoreItem.js
 
-import React from 'react';
+import React, { memo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { getHorarioStatus } from '../utils/carregaHorarios';
 
-export const Item = ({ 
-  item, 
-  onPress, 
-  colors, 
+const Item = ({
+  item,
+  onPress,
+  colors,
   searchQuery,
-  isDestaque = false
+  isDestaque = false,
 }) => {
-
   const isPremium = item?.anuncio?.premium === true;
   const isBusca = item?.anuncio?.busca === true;
 
@@ -22,19 +21,17 @@ export const Item = ({
 
   const temAnuncioAtivo = isPremium || (isBusca && searchQuery?.trim());
 
-  // === CÁLCULO DO STATUS GLOBAL DA LOJA ===
+  // Cálculo do status global (nova estrutura com filiais)
   let statusGlobal = { text: 'Fechado', isOpen: false };
 
   if (item.filiais && Array.isArray(item.filiais) && item.filiais.length > 0) {
-    // Verifica se pelo menos uma filial está aberta
     const algumaAberta = item.filiais.some(filial => {
       if (!filial.horarios) return false;
       const status = getHorarioStatus(filial.horarios);
-      return status.isOpen && !status.emIntervalo; // emIntervalo conta como fechado temporariamente
+      return status.isOpen && !status.emIntervalo;
     });
 
     if (algumaAberta) {
-      // Usa o status da primeira filial aberta para o texto detalhado
       const primeiraAberta = item.filiais.find(filial => {
         if (!filial.horarios) return false;
         const status = getHorarioStatus(filial.horarios);
@@ -47,27 +44,16 @@ export const Item = ({
         statusGlobal = { text: 'Aberto', isOpen: true };
       }
     }
-  } else if (item.horarios) {
-    // Compatibilidade com estrutura antiga (horarios no root)
-    statusGlobal = getHorarioStatus(item.horarios);
   }
 
   const { text: horarioText } = statusGlobal;
 
   return (
-    <TouchableOpacity
-      activeOpacity={0.7}
-      onPress={() => onPress(item)}
-      style={styles.container}
-    >
+    <TouchableOpacity activeOpacity={0.7} onPress={() => onPress(item)} style={styles.container}>
       <View style={styles.content}>
         <View style={styles.header}>
           <View>
-            {isDestaque && (
-              <Text style={styles.destaqueText}>
-                Destaque
-              </Text>
-            )}
+            {isDestaque && <Text style={styles.destaqueText}>Destaque</Text>}
 
             <Text style={[styles.nome, { color: nomeCor }]} numberOfLines={1}>
               {item.nome}
@@ -97,7 +83,6 @@ export const Item = ({
                       </>
                     );
                   }
-
                   return horarioText;
                 })()}
               </Text>
@@ -172,3 +157,6 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
 });
+
+// Export default com memo
+export default memo(Item);

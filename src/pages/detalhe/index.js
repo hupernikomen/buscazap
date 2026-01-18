@@ -8,7 +8,6 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,19 +17,14 @@ import { incrementClicks } from '../../services/firebaseConnection/firestoreServ
 import { pedirAvaliacao } from '../../utils/pedirAvaliacao';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const hojeIndex = new Date().getDay();
 
-export default function Detalhe({ route }) {
-
-
+export default function Detalhe({ route, navigation }) {
   const { item, colors } = route.params;
 
   const [loadingWhatsApp, setLoadingWhatsApp] = useState(false);
 
-  // === NORMALIZAÇÃO DAS FILIAIS ===
-  let filiais = [];
-
   useEffect(() => {
+
     const registrarAbertura = async () => {
       try {
         const chave = '@contador_detalhe';
@@ -39,50 +33,32 @@ export default function Detalhe({ route }) {
 
         await AsyncStorage.setItem(chave, contador.toString());
 
-        // Pede avaliação após 5 aberturas da tela de detalhe
         if (contador === 5) {
-          // Pequeno delay para não interromper a navegação
-          setTimeout(async () => {
-            await pedirAvaliacao();
-          }, 1500);
+          setTimeout(async () => await pedirAvaliacao(), 1500);
         }
-      } catch (error) {
-        console.log('Erro ao registrar abertura:', error);
-      }
+      } catch (error) {}
     };
 
     registrarAbertura();
-  }, []);
+  }, [navigation, item.nome]);
 
-  if (item.filiais && Array.isArray(item.filiais) && item.filiais.length > 0) {
-    filiais = item.filiais.map(f => ({
-      bairro: f.bairro || 'Principal',
-      endereco: f.endereco?.trim() || '',
-      whatsappNumero: f.whatsapp?.numero || null,
-      fazEntrega: f.fazEntrega === true,
-      horarios: f.horarios || {}
-    }));
-  } else {
-    const numeroAntigo = item.whatsapp?.principal || (Array.isArray(item.whatsapp) ? item.whatsapp[0]?.numero : null);
-    if (numeroAntigo) {
-      filiais = [{
-        bairro: item.bairro || 'Principal',
-        endereco: '',
-        whatsappNumero: numeroAntigo,
-        fazEntrega: item.fazEntrega === true,
-        horarios: item.horarios || {}
-      }];
-    }
-  }
+  // Agora só usa a estrutura nova com filiais
+  const filiais = (item.filiais || []).map(f => ({
+    bairro: f.bairro || 'Principal',
+    endereco: f.endereco?.trim() || '',
+    whatsappNumero: f.whatsapp?.numero || null,
+    fazEntrega: f.fazEntrega === true,
+    horarios: f.horarios || {}
+  }));
 
   if (filiais.length === 0) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <Text style={[styles.nomeLoja, { color: colors.text }]}>{item.nome}</Text>
           <Text style={styles.semInfo}>Informações não disponíveis.</Text>
         </ScrollView>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -97,9 +73,9 @@ export default function Detalhe({ route }) {
       const numeroLimpo = numero.replace(/\D/g, '');
       await Linking.openURL(`https://wa.me/55${numeroLimpo}`);
     } catch (error) {
-      console.error('Erro ao abrir WhatsApp ou incrementar clique:', error);
+      console.error('Erro ao abrir WhatsApp:', error);
       const numeroLimpo = numero.replace(/\D/g, '');
-      Linking.openURL(`https://wa.me/55${numeroLimpo}`).catch(() => { });
+      Linking.openURL(`https://wa.me/55${numeroLimpo}`).catch(() => {});
     } finally {
       setTimeout(() => setLoadingWhatsApp(false), 800);
     }
@@ -113,17 +89,14 @@ export default function Detalhe({ route }) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Nome da loja */}
         <Text style={[styles.nomeLoja, { color: colors.text }]}>
           {item.nome}
         </Text>
 
-        {/* Descrição geral */}
         {temDescricao && (
           <Text style={styles.descricao}>{item.descricao.trim()}</Text>
         )}
 
-        {/* Cada filial */}
         {filiais.map((filial, index) => {
           const horarioStatus = getHorarioStatus(filial.horarios);
           const isOpen = horarioStatus.isOpen;
@@ -144,62 +117,44 @@ export default function Detalhe({ route }) {
 
           return (
             <View key={index} style={styles.filialContainer}>
-              {/* Bloco título + endereço */}
               <View style={styles.identificacaoContainer}>
                 <Text style={[styles.tituloFilial, { color: colors.text }]}>
-                  {tituloFilial}
+                  {tituloFilial !== 'TERESINA' ? 'BAIRRO ' : ''}{tituloFilial}
                 </Text>
 
                 {temEndereco && (
-                  <View style={styles.enderecoHarmonizado}>
-                    {/* <Ionicons name="location-outline" size={16} color={colors.suave} /> */}
                     <Text style={styles.enderecoHarmonizadoTexto}>
                       {filial.endereco.toUpperCase()}
                     </Text>
-                  </View>
                 )}
               </View>
 
-              {/* Fina linha separadora */}
-              <View style={styles.separador} />
 
-              {/* Status da filial */}
-              <View style={styles.statusContainer}>
-                <Ionicons name={statusIcon} size={16} color={statusCor} />
-                <Text style={[styles.statusTexto, { color: statusCor }]}>
-                  {statusTexto}
-                </Text>
-              </View>
-
-              {/* Retorno do intervalo */}
               {estaNoIntervalo && filial.horarios.intervalo?.retorno && (
                 <Text style={styles.retornoTexto}>
                   Voltamos às {filial.horarios.intervalo.retorno}
                 </Text>
               )}
 
-              {/* Horários detalhados */}
               <View style={styles.horariosContainer}>
-
-
                 {filial.horarios.semana && (
                   <View style={styles.linhaHorario}>
-                    <Text style={styles.dia}>Segunda a Sexta</Text>
+                    <Text style={styles.dia}>Seg–Sex</Text>
                     <Text style={styles.horario}>
                       {filial.horarios.semana.abre} – {filial.horarios.semana.fecha}
                     </Text>
                   </View>
                 )}
 
-                <View style={[styles.linhaHorario, hojeIndex === 6]}>
-                  <Text style={styles.dia}>Sábado</Text>
+                <View style={styles.linhaHorario}>
+                  <Text style={styles.dia}>Sáb</Text>
                   <Text style={temSabado ? styles.horario : styles.horarioFechado}>
                     {temSabado ? `${filial.horarios.sabado.abre} – ${filial.horarios.sabado.fecha}` : 'Fechado'}
                   </Text>
                 </View>
 
-                <View style={[styles.linhaHorario, hojeIndex === 0]}>
-                  <Text style={styles.dia}>Domingo</Text>
+                <View style={styles.linhaHorario}>
+                  <Text style={styles.dia}>Dom</Text>
                   <Text style={temDomingo ? styles.horario : styles.horarioFechado}>
                     {temDomingo ? `${filial.horarios.domingo.abre} – ${filial.horarios.domingo.fecha}` : 'Fechado'}
                   </Text>
@@ -207,7 +162,7 @@ export default function Detalhe({ route }) {
 
                 {temIntervalo && filial.horarios.intervalo && (
                   <View style={styles.linhaIntervalo}>
-                    <Text style={styles.dia}>Intervalos</Text>
+                    <Text style={styles.dia}>Intervalo</Text>
                     <Text style={styles.horario}>
                       {filial.horarios.intervalo.inicio} – {filial.horarios.intervalo.retorno}
                     </Text>
@@ -215,19 +170,17 @@ export default function Detalhe({ route }) {
                 )}
               </View>
 
-              {/* Entrega */}
               {filial.fazEntrega && (
                 <View style={styles.entregaContainer}>
-                  <Ionicons name="bicycle-outline" size={18} color={colors.botao} />
-                  <Text style={styles.entregaTexto}>Fazemos entregas na região</Text>
+                  <Ionicons name="bicycle-outline" size={18} color={colors.text} />
+                  <Text style={styles.entregaTexto}>Fazemos entregas</Text>
                 </View>
               )}
 
-              {/* Botão WhatsApp */}
               {filial.whatsappNumero && (
                 <Pressable
                   onPress={() => handleWhatsApp(filial.whatsappNumero)}
-                  style={styles.botaoWhats}
+                  style={[styles.botaoWhats, { backgroundColor: colors.botao }]}
                   disabled={loadingWhatsApp}
                 >
                   {loadingWhatsApp ? (
@@ -263,62 +216,50 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   descricao: {
-    fontSize: 17,
-    color: '#666',
+    fontSize: 16,
+    color: '#333',
     textAlign: 'center',
     lineHeight: 22,
-    marginBottom: 32,
     paddingHorizontal: 10,
   },
   filialContainer: {
+    marginTop: 22,
     backgroundColor: '#fff',
-    borderRadius: 32,
+    borderRadius: 42,
     paddingVertical: 20,
-    paddingHorizontal: 20,
+    paddingHorizontal: 28,
     marginBottom: 32,
-    borderWidth: 1,
-    borderColor: '#f0f0f0',
+    borderTopWidth: .7,
+    borderColor: '#aaa',
   },
   identificacaoContainer: {
     alignItems: 'center',
+    marginBottom:22
   },
   tituloFilial: {
     fontSize: 14,
     fontWeight: '600',
     textTransform: 'uppercase',
-    letterSpacing: 1.2,
-  },
-  enderecoHarmonizado: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
   },
   enderecoHarmonizadoTexto: {
     fontSize: 14,
-    color: '#666',
+    color: '#333',
     textTransform: 'uppercase',
     textAlign: 'center',
-    marginTop:8
+    marginTop:6
   },
-  separador: {
-    height: .5,
-    width: 20,
-    alignSelf: 'center',
-    backgroundColor: '#aaa',
-    marginVertical: 14,
-  },
+
   statusContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    marginBottom: 20,
+    marginVertical: 20,
   },
   statusTexto: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '500',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   retornoTexto: {
     fontSize: 15,
@@ -328,35 +269,33 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   horariosContainer: {
-    backgroundColor: '#f9f9f9',
     borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    marginBottom: 28,
+    paddingVertical: 6,
+    marginBottom: 12,
+    borderColor: '#f0f0f0',
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
   },
   linhaHorario: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 6
+    paddingVertical: 4,
   },
   linhaIntervalo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 10,
-    marginTop:12,
-    borderTopWidth:1,
-    borderColor:'#f0f0f0'
-    
+    marginTop: 6,
+    borderColor: '#f0f0f0',
+    borderTopWidth: 1,
   },
   dia: {
     fontSize: 15,
-    color: '#555',
-    fontWeight: '500',
+    color: '#333',
   },
   horario: {
     fontSize: 15,
     color: '#333',
-    fontWeight: '500',
   },
   horarioFechado: {
     fontSize: 15,
@@ -369,14 +308,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 12,
     paddingVertical: 16,
-    marginBottom: 32,
-    backgroundColor: '#f0f8f0',
-    borderRadius: 40,
+    marginBottom: 12,
   },
   entregaTexto: {
     fontSize: 16,
-    color: '#28a745',
-    fontWeight: '600',
   },
   botaoWhats: {
     flexDirection: 'row',
@@ -385,7 +320,7 @@ const styles = StyleSheet.create({
     gap: 16,
     borderRadius: 50,
     height: 55,
-    backgroundColor: '#25D366',
+    elevation: 5,
   },
   textoBotao: {
     color: '#fff',

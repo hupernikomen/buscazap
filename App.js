@@ -24,7 +24,7 @@ const Tema = {
     primary: '#000',
     border: '#ddd',
     notificacao: '#e2a50cff',
-    botao: '#1bc75aff',
+    botao: '#12c755ff',
     destaque: '#dd8b06ff'
   },
 };

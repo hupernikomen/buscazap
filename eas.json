@@ -19,9 +19,21 @@
     "production": {
       "autoIncrement": true,
       "android": {
-        "buildType": "app-bundle"
+        "buildType": "app-bundle",
+        "gradleCommand": ":app:assembleRelease",
+        "image": "ubuntu-22.04-jdk-11-ndk-r25b"  
       },
-      "channel": "production"
+      "channel": "production",
+      "env": {
+        "APP_ENV": "production"
+      },
+      "cache": {
+        "disabled": false
+      },
+      "node": "20" 
     }
+  },
+  "submit": {
+    "production": {}
   }
 }
